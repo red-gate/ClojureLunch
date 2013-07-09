@@ -1,6 +1,9 @@
-;; Anything you type in here will be executed
-;; immediately with the results shown on the
-;; right.
+
+;; The idea was to take a PEG grammar for a very simple expression language,
+;; and write a packrat style parser by implementing a sequence of mutually recursive
+;; parser functions, and then using memoisation to ensure that parses are only evaluated
+;; once in the dynamic programming style.
+
 
 ;; expr ::= term <+> expr | term
 ;; term ::= atom <*> term | atom
@@ -9,8 +12,7 @@
 (def numeric?
     #{\0 \1 \2 \3 \4 \5 \6 \7 \8 \9})
 
-(declare parse-atom
-         parse-op)
+(declare parse-atom parse-op parse-term)
 
 (defn parse-expr*
     [input position]
