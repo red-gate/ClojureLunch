@@ -1,0 +1,38 @@
+We'll try to type check the following ML program using constraints 
+  - see http://www.cs.colorado.edu/~bec/courses/csci5535-s09/slides/ML_Type_Inference_and_Unification.pdf
+
+
+let rec apply = fun f v t ->
+  if t=0
+    then v
+    else apply f (f v) (t-1)
+  fi
+
+The idea is that we give constraint variables to the variables of the expression
+
+apply : 'a
+f : 'b
+v : 'c
+t : 'd
+
+One then walks the expressions
+   
+  apply f (f v) (t-1)
+
+apply has type 'a, and f has type 'b. 
+Give (apply f) the type 'e and generate constraint 'a = 'b -> 'e
+
+(f v) has type 'f
+   'b = 'c -> 'f
+
+Give ((apply f) (f v)) the type 'g and generate 'e = 'f -> 'g
+
+Give (t-1) the type int and constraint 'd = int
+
+Give (((apply f) (f v)) (t-1)) the type 'h and generate 'g = int -> 'h
+
+From the if expression, the two branches have the same type and hence 'c = 'h
+
+From the body of the fun,
+
+  'a = 'b -> 'c -> 'd -> 'c      (or 'h depending on which if branch we take)
