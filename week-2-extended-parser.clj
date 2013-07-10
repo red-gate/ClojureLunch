@@ -19,7 +19,8 @@
 (def whitespace? (set '(\newline \space)))
 
 (declare parse-atom parse-op parse-term parse-equality parse-identifier-or-atom
-         parse-bracketed-expression parse-expression parse-whitespace)
+         parse-bracketed-expression parse-expression parse-whitespace
+         parse-expr)
 
 (defn parse-equality*
     [input position]
