@@ -1,7 +1,7 @@
 
 ;; We now extend this to a very simple functional language
 
-;; equality ::= expr = expr 
+;; equality ::= expr = expr
 
 ;; expression ::= bracketedexpr whitespace application | bracketedexpr
 ;; bracketedexpr ::= ( expr ) | expr
@@ -110,7 +110,7 @@
 
 (defn parse-identifier-or-atom*
     [input position]
-  (or (parse-atom input position) 
+  (or (parse-atom input position)
       (parse-identifier input position)))
 
 (def parse-identifier-or-atom (memoize parse-identifier-or-atom*))
@@ -118,14 +118,14 @@
 (defn parse-bracketed-expression*
   [input position]
    (when (< position (count input))
-     (or 
+     (or
       (when (= (input position) \()
         (let [expr (parse-expr input (+ position 1))]
           (when expr
             (let [end (second expr)]
                (when (< end (count input))
                  (when (= (input end) \))
-                   [(first expr) (+ end 1)]))))))     
+                   [(first expr) (+ end 1)]))))))
       (parse-expr input position))))
 
 (def parse-bracketed-expression (memoize parse-bracketed-expression*))
@@ -142,7 +142,7 @@
                  (when application
                    [(application-node. (first expr1) (first application)) (second application)]))))
           expr1))))
-  
+
 (def parse-expression (memoize parse-expression*))
 
 (parse-expression (vec "a (1+2)") 0)
