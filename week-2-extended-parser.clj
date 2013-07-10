@@ -22,6 +22,8 @@
          parse-bracketed-expression parse-expression parse-whitespace
          parse-expr)
 
+(defrecord equality-node [exp1 expr2])
+
 (defn parse-equality*
     [input position]
   (let [term (parse-expr input position)]
@@ -32,9 +34,11 @@
           (let [expr (parse-expr input (second op))]
             (if-not expr
               expr
-              [[(first op) (first term) (first expr)] (second expr)])))))))
+              [(equality-node. (first term) (first expr)) (second expr)])))))))
 
 (def parse-equality (memoize parse-equality*))
+
+(defrecord expression-node [op expr1 expr2])
 
 (defn parse-expr*
     [input position]
@@ -47,7 +51,7 @@
           (let [expr (parse-expr input (second op))]
             (if-not expr
               expr
-              [[(first op) (first term) (first expr)] (second expr)])))))))
+              [(expression-node. (first op) (first term) (first expr)) (second expr)])))))))
 
 (def parse-expr (memoize parse-expr*))
 
@@ -71,7 +75,7 @@
           (let [term (parse-term input (second op))]
             (if-not term
               atom1
-              [[(first op) (first atom1) (first term)] (second term)])))))))
+              [(expression-node. (first op) (first atom1) (first term)) (second term)])))))))
 
 (def parse-term (memoize parse-term*))
 
@@ -126,6 +130,8 @@
 
 (def parse-bracketed-expression (memoize parse-bracketed-expression*))
 
+(defrecord application-node [function argument])
+
 (defn parse-expression*
   [input position]
   (let [expr1(parse-bracketed-expression input position)]
@@ -134,12 +140,11 @@
             (when whitespace
                (let [application (parse-expression input (second whitespace))]
                  (when application
-                   [[(first expr1) (first application)] (second application)]))))
+                   [(application-node. (first expr1) (first application)) (second application)]))))
           expr1))))
   
 (def parse-expression (memoize parse-expression*))
 
 (parse-expression (vec "a (1+2)") 0)
-
 
 
