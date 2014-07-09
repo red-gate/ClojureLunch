@@ -18,8 +18,7 @@
 (all-values 1)
 
 (defn value-at [board coordinates]
-  (get-in board coordinates)
-  )
+  (get-in board coordinates))
 
 
 (value-at sudoku-board [0 1]) ;=> 3
@@ -41,8 +40,7 @@
 (defn col-values [board [_ y]]
   (set (map
          (fn [b] (get b y))
-         board))
-  )
+         board)))
 
 (col-values sudoku-board [0 2]) ;=> #{0 8}
 (col-values sudoku-board [4 8]) ;=> #{3 1 6 0 5 9}
@@ -50,9 +48,8 @@
 
 (defn coord-pairs [coords]
   (for [x coords y coords]
-    [x y]
-    )
-  )
+    [x y]))
+
 (coord-pairs [0 1])   ;=> [[0 0] [0 1]
                       ;    [1 0] [1 1]]
 
@@ -60,23 +57,17 @@
                       ;    [1 0] [1 1] [1 2]
                       ;    [2 0] [2 1] [2 2]]
 
-
 (defn top-left [coords]
-    (map (fn [i] (* (int (/ i 3)) 3)) coords
-  )
- )
+    (map (fn [i] (* (int (/ i 3)) 3)) coords))
 
 (defn block-pairs [coords]
   (let [[x y] (top-left coords)]
   (for [[x' y'] (coord-pairs [0 1 2])]
-      [(+ x' x) (+ y' y)])
-  )
-)
+      [(+ x' x) (+ y' y)])))
+
 (defn block-values [board coords]
   (set(map (fn [args] (value-at board args))
-           (block-pairs coords)
-    ))
-)
+           (block-pairs coords))))
 
 (top-left [0 2])
 (top-left [4 2])
@@ -86,3 +77,12 @@
 
 (block-values sudoku-board [0 2]) ;=> #{0 5 3 6 8 9}
 (block-values sudoku-board [4 5]) ;=> #{0 6 8 3 2}
+
+((fn [x] x) 10)
+
+(#(identity %) 10)
+
+(#(* %1 %2) 2 3)
+
+
+
