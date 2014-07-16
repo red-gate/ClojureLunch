@@ -38,6 +38,29 @@
           [2 8 7 4 1 9 6 3 5]
           [3 4 5 2 8 6 1 7 9]]))
 
+(def before-change
+  (board [[5 3 0 0 7 0 0 0 0]
+          [6 0 0 1 9 5 0 0 0]
+          [0 9 8 0 0 0 0 6 0]
+          [8 0 0 0 6 0 0 0 3]
+          [4 0 0 8 0 3 0 0 1]
+          [7 0 0 0 2 0 0 0 6]
+          [0 6 0 0 0 0 2 8 0]
+          [0 0 0 4 1 9 0 0 5]
+          [0 0 0 0 8 0 0 7 9]]))
+
+(def after-change
+  (board [[5 3 0 0 7 0 0 0 0]
+          [6 0 0 1 9 5 0 0 0]
+          [0 4 8 0 0 0 0 6 0]
+          [8 0 0 0 6 0 0 0 3]
+          [4 0 0 8 0 3 0 0 1]
+          [7 0 0 0 2 0 0 0 6]
+          [0 6 0 0 0 0 2 8 0]
+          [0 0 0 4 1 9 0 0 5]
+          [0 0 0 0 8 0 0 7 9]]))
+
+
 (def all-values #{1 2 3 4 5 6 7 8 9})
 
 (all-values 1)
@@ -209,9 +232,72 @@
 (valid-cols? solved-board)  ;=> truthy
 (valid-cols? invalid-board)
 
- (defn valid-solution [board]
+ (defn valid-solution? [board]
    (and (valid-blocks? board)
         (valid-cols? board)
         (valid-rows? board)))
 
- (valid-solution solved-board)
+ (valid-solution? solved-board)
+
+(def set-value-at assoc-in)
+
+(= after-change (set-value-at before-change [2 1] 4))
+
+(defn find-empty-point [board]
+  (first
+   (for [x (range 0 9) y (range 0 9)
+        :when (not (has-value? board [x y]))] [x y])))
+
+(find-empty-point sudoku-board) ;=> [0 2]
+(find-empty-point solved-board) ;=> nil
+
+(defn solve [board]
+  (if (and (filled? board)(valid-solution? board))
+    [board]
+    (let [coords (find-empty-point board)]
+      (for [possible-item (valid-values-for board coords)
+            solution
+            (let [next-board (set-value-at board coords possible-item)]
+              (solve next-board))]
+        solution
+        ))))
+
+
+
+;(first (solve sudoku-board))
+
+;(= solved-board (solve sudoku-board))
+
+;(solve [])
+
+
+(def not-solved-board
+  (board [[5 3 0 6 7 8 9 1 2]
+          [6 7 2 1 9 5 3 4 8]
+          [1 9 8 3 4 2 5 6 7]
+          [8 5 9 7 6 1 4 2 3]
+          [4 2 6 8 5 3 7 9 1]
+          [7 1 3 9 2 4 8 5 6]
+          [9 6 1 5 3 7 2 8 4]
+          [2 8 7 4 1 9 6 3 5]
+          [3 4 5 2 8 6 1 7 9]]))
+
+;(solve not-solved-board)
+
+
+(def not-not-solved-board
+  (board [[5 3 0 0 0 8 9 1 2]
+          [6 7 2 1 9 5 3 4 8]
+          [1 9 8 3 4 2 5 6 7]
+          [8 5 9 7 6 1 4 2 3]
+          [4 2 6 8 5 3 7 9 1]
+          [7 1 3 9 2 4 8 5 6]
+          [9 6 1 5 3 7 2 8 4]
+          [2 8 7 4 1 9 6 3 5]
+          [3 4 5 2 8 6 1 7 9]]))
+
+(first (solve not-not-solved-board))
+
+
+
+
