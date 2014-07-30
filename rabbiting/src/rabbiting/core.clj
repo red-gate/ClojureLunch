@@ -9,23 +9,35 @@
 ; http://clojurerabbitmq.info/articles/getting_started.html
 
 (def ^{:const true}
-  default-exchange-name "")
+  all-incoming-exchange "all.incoming")
+
+(def connected-users (atom #{}))
 
 (defn message-handler
   [ch {:keys [content-type delivery-tag type] :as meta} ^bytes payload]
-  (println (format "[consumer] Received a message: %s, delivery tag: %d, content type: %s, type: %s"
-                   (String. payload "UTF-8") delivery-tag content-type type)))
+  (let [message (String. payload "UTF-8")]
+    (when (= type "user.joined")
+      (swap! connected-users #(conj % message)))
+    (println (format "[consumer] Received a message: %s, delivery tag: %d, content type: %s, type: %s"
+                      message delivery-tag content-type type))))
 
 (defn -main
   [& args]
-  (let [conn  (rmq/connect)
+  (let [user "arun"
+        conn  (rmq/connect)
         ch    (lch/open conn)
-        qname "langohr.examples.hello-world"]
+        qname (str "rabbiting.user." user)
+        routing-key "rabbiting.message.sent"
+        ]
     (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
     (lq/declare ch qname :exclusive false :auto-delete true)
+    (lq/bind ch qname all-incoming-exchange :routing-key routing-key)
     (lc/subscribe ch qname message-handler :auto-ack true)
-    (lb/publish ch default-exchange-name qname "Hello!" :content-type "text/plain" :type "greetings.hi")
-    (Thread/sleep 2000)
+    (lb/publish ch all-incoming-exchange routing-key user :content-type "text/plain" :type "user.joined")
     (println "[main] Disconnecting...")
     (rmq/close ch)
     (rmq/close conn)))
+
+(-main)
+
+@connected-users
