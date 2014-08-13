@@ -35,16 +35,12 @@
   [user]
   (let [conn  (rmq/connect)
         ch    (lch/open conn)
-        qname    (queue-name-for-user user)
-        ]
-
+        qname    (queue-name-for-user user)]
     (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
     (lq/declare ch qname :exclusive false :auto-delete true)
     (lq/bind ch qname all-incoming-exchange :routing-key routing-key)
     (lc/subscribe ch qname message-handler :auto-ack true )
-
-    { :connection conn :channel ch :user user}
-))
+    {:connection conn :channel ch :user user}))
 
 (defn send [msg-type msg-body {:keys [channel user]}]
     (lb/publish channel
@@ -55,24 +51,5 @@
                 :type msg-type
                 :sender user))
 
-(def join (partial send "user.joined"))
-
-(defn -main
-  [& args]
-  (initialize-connection "arun"))
-
-(def connection-info
-  (initialize-connection "arun"))
-
-(def connection-info2
-  (initialize-connection "clivester"))
-
-(join "arun" connection-info)
-
-(join "clivester" connection-info2)
-
-@connected-users
-
-(shutdown connection-info)
-
-(shutdown connection-info2)
+(defn join [connection-info]
+  (send "user.joined" (:user connection-info) connection-info))
