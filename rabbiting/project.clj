@@ -5,5 +5,5 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [com.novemberain/langohr "2.11.0"]]
-  :target-path "target/%s"
+  :main rabbiting.client
   :profiles {:uberjar {:aot :all}})

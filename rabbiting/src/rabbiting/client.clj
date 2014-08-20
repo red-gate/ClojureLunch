@@ -1,7 +1,9 @@
 (ns rabbiting.client
-  (:gen-class)
-  (:require  [rabbiting.core :as c]))
+  (:require  [rabbiting.core :as c])
+  (:gen-class :main true))
 
-(def connection-info
-  (c/initialize-connection "arun"))
-
+(defn -main [& args]
+  ;(let [user (read-line)
+   ;     connection-info (c/initialize-connection user)]
+    ;(c/shutdown connection-info))
+  )
