@@ -41,7 +41,7 @@
     (lc/subscribe ch qname message-handler :auto-ack true )
     {:connection conn :channel ch :user user}))
 
-(defn send [msg-type msg-body {:keys [channel user]}]
+(defn send2 [msg-type msg-body {:keys [channel user]}]
     (lb/publish channel
                 all-incoming-exchange
                 routing-key
@@ -51,4 +51,4 @@
                 :sender user))
 
 (defn join [connection-info]
-  (send "user.joined" (:user connection-info) connection-info))
+  (send2 "user.joined" (:user connection-info) connection-info))
