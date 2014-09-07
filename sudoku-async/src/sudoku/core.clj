@@ -50,7 +50,7 @@
         (doall
          (map #(>!! (get-item x y board-channels) %) (range-excluding-item n 1 5))))))))
 
-(defn spawn-squres [board-channels done-channel]
+(defn spawn-squares [board-channels done-channel]
   (doseq [x (range 4)
           y (range 4)]
     (square x y (get-item x y board-channels) done-channel)))
@@ -61,14 +61,14 @@
 
 (defn setup-channels []
   (letfn [(channel-row []
-            (into [] (repeatedly 4 #(chan))))])
-  (into [] (repeatedly 4 #(channel-row))))
+            (into [] (repeatedly 4 #(chan))))]
+    (into [] (repeatedly 4 #(channel-row)))))
 
 (defn solve [sudoku-board]
   (let
      [sudoku-board-channels (setup-channels)
       done (chan)]
-  (spawn-squres sudoku-board-channels done)
+  (spawn-squares sudoku-board-channels done)
   (setup sudoku-board sudoku-board-channels)
   (loop [solved-board sudoku-board]
    (if (finished? solved-board)
