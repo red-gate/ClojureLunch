@@ -10,7 +10,8 @@
                  [ring/ring-json "0.2.0"]
                  [org.clojure/clojurescript "0.0-2311"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
-                 [om "0.7.1"]]
+                 [reagi "0.10.1"]
+                 [reagent "0.4.2"]]
 
   :main rabbiting.client
   :profiles {:uberjar {:aot :all}
@@ -26,7 +27,8 @@
 
   :cljsbuild {:builds [{:id "dev"
                       :source-paths ["src/cljs"]
-                      :compiler {:output-to "resources/public/js/app.js"
+                      :compiler {:preamble ["reagent/react.js"]
+                                 :output-to "resources/public/js/app.js"
                                  :output-dir "resources/public/js/out"
                                  :optimizations :none
                                  :source-map true}}]}
