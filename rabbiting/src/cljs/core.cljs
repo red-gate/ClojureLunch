@@ -1,15 +1,17 @@
 (ns rabbiting.core
   (:require [reagent.core :as reagent :refer [atom]]))
 
-(def click-count (atom 0))
+(def msg-list-atom (atom ["123", "456"]))
 
 (defn msg-list []
   [:div
-   [:h1 @click-count]])
+   (for [msg @msg-list-atom]
+     [:p msg])])
 
 (defn asdf [event]
   (when (= (.-keyCode event) 13)
-    (swap! click-count inc)))
+    (swap! msg-list-atom conj (-> event .-currentTarget .-value))
+    (set! (-> event .-currentTarget .-value) "")))
 
 (defn msg-prompt []
   [:input {:type "text" :on-key-up asdf}])
