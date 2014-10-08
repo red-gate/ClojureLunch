@@ -11,7 +11,9 @@
                  [org.clojure/clojurescript "0.0-2311"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
                  [reagi "0.10.1"]
-                 [reagent "0.4.2"]]
+                 [reagent "0.4.2"]
+                 [http-kit "2.0.0"]
+                 ]
 
   :main rabbiting.client
   :profiles {:uberjar {:aot :all}
