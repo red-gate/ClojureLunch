@@ -16,6 +16,8 @@
   (with-channel req con
     (swap! clients assoc con true)
     (println con " connected")
+    (on-receive con (fn [& args]
+    	     	    (println args)))
     (on-close con (fn [status]
                     (swap! clients dissoc con)
                     (println con " disconnected. status: " status)))))

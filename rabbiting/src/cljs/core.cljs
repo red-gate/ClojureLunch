@@ -20,4 +20,4 @@
   (reagent/render-component [:div [msg-list] [msg-prompt]]
                             (.-body js/document))) 
 
-(js/WebSocket. "ws://localhost:3000/chatwebsocket")
+(js/WebSocket. "ws://localhost:8080/chatwebsocket")
