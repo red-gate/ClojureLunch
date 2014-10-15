@@ -4,7 +4,7 @@
             [compojure.core :refer [GET defroutes]]
             [ring.util.response :refer [resource-response response]]
             [ring.middleware.json :as middleware]
-            [org.httpkit.server :as http]
+            [org.httpkit.server :refer :all]
             )
   )
 
@@ -12,10 +12,11 @@
 
 (defn ws
   [req]
-  (http/with-channel req con
+  (println req)
+  (with-channel req con
     (swap! clients assoc con true)
     (println con " connected")
-    (http/on-close con (fn [status]
+    (on-close con (fn [status]
                     (swap! clients dissoc con)
                     (println con " disconnected. status: " status)))))
 

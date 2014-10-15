@@ -19,3 +19,5 @@
 (defn ^:export run []
   (reagent/render-component [:div [msg-list] [msg-prompt]]
                             (.-body js/document))) 
+
+(js/WebSocket. "ws://localhost:3000/chatwebsocket")
