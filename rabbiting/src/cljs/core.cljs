@@ -8,9 +8,17 @@
    (for [msg @msg-list-atom]
      [:p msg])])
 
+(def socket (js/WebSocket. "ws://localhost:8080/chatwebsocket"))
+
+(set! (.-onmessage socket)
+     (fn [event]
+        (let [data (-> event .-data)]
+          (swap! msg-list-atom conj data))))
+   
 (defn asdf [event]
   (when (= (.-keyCode event) 13)
-    (swap! msg-list-atom conj (-> event .-currentTarget .-value))
+    (let [entered-value (-> event .-currentTarget .-value)]
+      (.send socket entered-value))
     (set! (-> event .-currentTarget .-value) "")))
 
 (defn msg-prompt []
@@ -20,4 +28,5 @@
   (reagent/render-component [:div [msg-list] [msg-prompt]]
                             (.-body js/document))) 
 
-(js/WebSocket. "ws://localhost:8080/chatwebsocket")
+
+
