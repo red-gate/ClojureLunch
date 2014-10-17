@@ -19,13 +19,14 @@
   :profiles {:uberjar {:aot :all}
              :dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring-mock "0.1.5"]]}}
-  :plugins [[lein-ring "0.8.11"]
+  :plugins [
+            ;;;[lein-ring "0.8.11"]
             [lein-cljsbuild "1.0.4-SNAPSHOT"]
             [lein-pdo "0.1.1"]]
   :ring {:handler rabbiting.handler/app}
   :source-paths ["src/clj"]
 
-  :aliases {"up" ["pdo" "cljsbuild" "auto," "ring" "server-headless"]}
+  :aliases {"up" ["pdo" "cljsbuild" "auto," "run" ]}
 
   :cljsbuild {:builds [{:id "dev"
                       :source-paths ["src/cljs"]
