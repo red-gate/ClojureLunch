@@ -4,29 +4,16 @@
             [compojure.core :refer [GET defroutes]]
             [ring.util.response :refer [resource-response response]]
             [ring.middleware.json :as middleware]
-            [org.httpkit.server :refer :all]
-            )
+	    [rabbiting.server :as rserver]
+	    )
   )
 
-(def clients (atom {}))
 
-(defn ws
-  [req]
-  (println req)
-  (with-channel req con
-    (swap! clients assoc con true)
-    (println con " connected")
-    (on-receive con (fn [& args]
-    	     	    (println args)
-		    (send! con (str "Roundtripped " args))))
-    (on-close con (fn [status]
-                    (swap! clients dissoc con)
-                    (println con " disconnected. status: " status)))))
 
 (defroutes app-routes
   (GET  "/" [] (resource-response "index.html" {:root "public"}))
   (GET  "/widgets" [] (response [{:name "Widget 1"} {:name "Widget 2"}]))
-  (GET "/chatwebsocket" []  ws)
+  (GET "/chatwebsocket" []  rserver/websocket)
   (route/resources "/")
   (route/not-found "Page not found"))
 
