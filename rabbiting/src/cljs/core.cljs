@@ -14,19 +14,32 @@
      (fn [event]
         (let [data (-> event .-data)]
           (swap! msg-list-atom conj data))))
-   
-(defn asdf [event]
+
+(defn send-chat-message!
+  [event]
   (when (= (.-keyCode event) 13)
     (let [entered-value (-> event .-currentTarget .-value)]
       (.send socket entered-value))
     (set! (-> event .-currentTarget .-value) "")))
 
+(defn connect-as-user! [username])
+
 (defn msg-prompt []
-  [:input {:type "text" :on-key-up asdf}])
+  [:input {:type "text" :on-key-up send-chat-message!}])
+
+(defn username-prompt []
+  [:input {:type "text"}])
+
+(defn submit-username []
+  [:button {:on-click (connect-as-user! "Toby")}
+   "Be Toby"])
 
 (defn ^:export run []
-  (reagent/render-component [:div [msg-list] [msg-prompt]]
-                            (.-body js/document))) 
+  (reagent/render-component [:div
+                             [submit-username]
+                             [msg-list]
+                             [msg-prompt]]
+                            (.-body js/document)))
 
 
 
