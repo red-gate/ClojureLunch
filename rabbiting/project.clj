@@ -13,6 +13,7 @@
                  [reagi "0.10.1"]
                  [reagent "0.4.2"]
                  [http-kit "2.1.18"]
+                 [com.datomic/datomic-free "0.9.5067"]
                  ]
 
   :main rabbiting.client
