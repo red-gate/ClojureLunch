@@ -1,17 +1,10 @@
-;; Anything you type in here will be executed
-;; immediately with the results shown on the
-;; right.
-
 (defn digits [x]
   (if (= x 0)
-    nil
+      nil
     (conj
-         (digits
-          (quot x 10))
-         (rem x 10))))
-
-
-
+     (digits
+      (quot x 10))
+     (rem x 10))))
 
 (defn step-number[x]
   (apply +
@@ -21,16 +14,15 @@
 
 
 (defn happy-set [x s]
-           (if
-             (s x)
-             false
-             (let [y (step-number x)]
-               (if (= 1 x)
-                 true
-                 (happy-set y (conj s x)
-            )))))
+  (if (s x)
+      false
+    (let [y (step-number x)]
+	 (if (= 1 x)
+	     true
+	   (happy-set y (conj s x))))))
 
-(defn happy-number [x] (happy-set x #{}))
+(defn happy-number [x] 
+  (happy-set x #{}))
 
 (digits 52345)
 (step-number 7)
@@ -46,3 +38,4 @@
 
 
 
+// We should try the infinite stream idea using iterate, take-while 
