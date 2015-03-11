@@ -24,11 +24,14 @@
      pixels)
     ))
 
+
+(defn byte-mangling [b] (int (bit-and b 0xFF)))
+
 (defn seq-map-byte-array [f b] (byte-array (f
      (seq b))))
 
 (defn pixelfilter [f image] (let [pixels (get-pixels image)]
-                              (set-pixels image (seq-map-byte-array (comp #(map int %) f) pixels)))
+                              (set-pixels image (seq-map-byte-array (comp f #(map byte-mangling %)) pixels)))
   )
 
 (defn threshold [image] (pixelfilter threshold-pixels image))
