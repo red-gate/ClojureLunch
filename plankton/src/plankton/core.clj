@@ -12,14 +12,14 @@
 (def pixels (get-pixels plankton-img))
 
 (defn average-pixel-value [pixels]
-  (/ (reduce + 0 pixels) (count pixels)))
+  (/ (reduce + 0 (map int pixels)) (count pixels)))
 
 
 (defn threshold-pixels [pixels]
   (let [av (average-pixel-value pixels)]
     (map
      #(if (> %  av)
-        127
+        255
         0)
      pixels)
     ))
@@ -28,17 +28,21 @@
      (seq b))))
 
 (defn pixelfilter [f image] (let [pixels (get-pixels image)]
-                              (set-pixels image (seq-map-byte-array f pixels)))
+                              (set-pixels image (seq-map-byte-array (comp #(map int %) f) pixels)))
   )
 
 (defn threshold [image] (pixelfilter threshold-pixels image))
 
 
+(defn runProgram [] ((threshold plankton-img)
+  (show plankton-img :zoom 5.0)))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (threshold plankton-img)
-  (show plankton-img :zoom 5.0))
+  (runProgram)
+  )
+(def run (runProgram))
 
 (def plak-pix (get-pixels plankton-img))
 
