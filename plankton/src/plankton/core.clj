@@ -11,8 +11,12 @@
 
 (def pixels (get-pixels plankton-img))
 
+(defn average-pixel-value [pixels]
+  (/ (reduce + 0 pixels) (count pixels)))
+
+
 (defn threshold-pixels [pixels]
-  (let [av (/ (reduce + 0 pixels) (count pixels))]
+  (let [av (average-pixel-value pixels)]
     (map
      #(if (> %  av)
         127
@@ -20,8 +24,11 @@
      pixels)
     ))
 
+(defn seq-map-byte-array [f b] (byte-array (f
+     (seq b))))
+
 (defn pixelfilter [f image] (let [pixels (get-pixels image)]
-                              (set-pixels image (f pixels)))
+                              (set-pixels image (seq-map-byte-array f pixels)))
   )
 
 (defn threshold [image] (pixelfilter threshold-pixels image))
@@ -32,3 +39,9 @@
   [& args]
   (threshold plankton-img)
   (show plankton-img :zoom 5.0))
+
+(def plak-pix (get-pixels plankton-img))
+
+(def test-average (average-pixel-value plak-pix))
+
+
