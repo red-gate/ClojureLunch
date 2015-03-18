@@ -1,9 +1,10 @@
 (ns plankton.core
-  (:gen-class))
+  (:gen-class)
+  (:import [java.awt.image BufferedImage BufferedImageOp])
+  (:use [mikera.image.filters]))
 
 (use 'mikera.image.core)
 (use 'mikera.image.colours)
-(use 'mikera.image.filters)
 
 (def image-path "test-image.jpg")
 
@@ -36,16 +37,19 @@
 
 (defn threshold [image] (pixelfilter threshold-pixels image))
 
+(defn dilate
+;  "Creates a simple blur filter (3x3 pixel) blur"
+    (Filter. (com.jhlabs.image.BlurFilter.)))
 
 (defn runProgram [] ((threshold plankton-img)
-  (show plankton-img :zoom 5.0)))
+  (show ((dilate) plankton-img) :zoom 5.0)))
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
   (runProgram)
   )
-(def run (runProgram))
+;(def run (runProgram))
 
 (def plak-pix (get-pixels plankton-img))
 
