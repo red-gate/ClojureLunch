@@ -46,7 +46,7 @@
 
 (defn dilate []
 ;  "Creates a simple blur filter (3x3 pixel) blur"
-    (Filter. (com.jhlabs.image.MaximumFilter.)))
+    (Filter. (com.jhlabs.image.MinimumFilter.)))
 
 (defn runProgram [] ((threshold plankton-img)
   (show ((dilate) plankton-img) :zoom 5.0)))
