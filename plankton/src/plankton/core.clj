@@ -1,7 +1,7 @@
 (ns plankton.core
   (:gen-class)
   (:import [java.awt.image BufferedImage BufferedImageOp])
-  (:use [mikera.image.filters]))
+  )
 
 (use 'mikera.image.core)
 (use 'mikera.image.colours)
@@ -37,9 +37,16 @@
 
 (defn threshold [image] (pixelfilter threshold-pixels image))
 
-(defn dilate
+(deftype Filter [^BufferedImageOp image-op]
+  clojure.lang.IFn
+    (invoke [this image]
+      (let [^BufferedImage image image dest-img (.createCompatibleDestImage image-op image (.getColorModel image))]
+        (.filter image-op image dest-img) dest-img))
+    (applyTo [this args] (clojure.lang.AFn/applyToHelper this args)))
+
+(defn dilate []
 ;  "Creates a simple blur filter (3x3 pixel) blur"
-    (Filter. (com.jhlabs.image.BlurFilter.)))
+    (Filter. (com.jhlabs.image.MaximumFilter.)))
 
 (defn runProgram [] ((threshold plankton-img)
   (show ((dilate) plankton-img) :zoom 5.0)))
