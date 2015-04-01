@@ -35,7 +35,26 @@
   (let [pixels (get-pixels image)]
     (set-pixels image (seq-map-byte-array (comp f #(map byte-mangling %)) pixels))))
 
-(defn threshold [image] (pixelfilter threshold-pixels image))
+(defn threshold [image]
+  (pixelfilter threshold-pixels image)
+  image)
+
+(defn flood-fill-from-index-with-colour [pixels index new-colour]
+  (loop [pixels-to-check (list index)]
+    (when pixels-to-check
+    (let [current (first pixels-to-check)]
+      (when (not= (aget pixels current) new-colour)
+        (aset pixels current new-colour)
+        ;; add neighbouhs
+        )
+      (recur (rest pixels-to-check))))))
+
+(defn flood-fill-image [image]
+   (let [pixels (byte-array (map byte-mangling (seq (get-pixels image))))
+         enumerated-pixels (zipmap pixels (iterate inc 0))]
+     (let [index (find enumerated-pixels 255)]
+       (set-pixels image (flood-fill-from-index-with-colour pixels index 100))
+       image)))
 
 (deftype Filter [^BufferedImageOp image-op]
   clojure.lang.IFn
@@ -49,8 +68,7 @@
     (Filter. (com.jhlabs.image.MinimumFilter.)))
 
 (defn runProgram []
-  ((threshold plankton-img)
-    (show ((dilate) plankton-img) :zoom 5.0)))
+  (show (flood-fill-image ((dilate) (threshold plankton-img))) :zoom 5.0))
 
 (defn -main
   "I don't do a whole lot ... yet."
