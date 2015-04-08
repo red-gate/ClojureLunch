@@ -41,13 +41,14 @@
 
 (defn flood-fill-from-index-with-colour [pixels index new-colour]
   (loop [pixels-to-check (list index)]
-    (when pixels-to-check
+    (when (first pixels-to-check)
     (let [current (first pixels-to-check)]
       (when (not= (aget pixels current) new-colour)
         (aset pixels current new-colour)
         ;; add neighbouhs
         )
-      (recur (rest pixels-to-check))))))
+      (recur (rest pixels-to-check)))))
+  pixels)
 
 (defn flood-fill-image [image]
    (let [pixels (byte-array (map byte-mangling (seq (get-pixels image))))
@@ -77,8 +78,8 @@
   )
 ;(def run (runProgram))
 
-(def plak-pix (get-pixels plankton-img))
+;(def plak-pix (get-pixels plankton-img))
 
-(def test-average (average-pixel-value plak-pix))
+;(def test-average (average-pixel-value plak-pix))
 
 
