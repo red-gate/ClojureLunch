@@ -40,36 +40,46 @@
   image)
 
 
-(defn flood-fill-from-index-with-colour [pixels index new-colour]
-  (loop [pixels-to-check (list index)]
-    (when (first pixels-to-check)
-    (let [current (first pixels-to-check)]
-      (when (not= (get pixels current) new-colour)
-        (aset pixels current new-colour)
-        ;; add neighbouhs
-        )
-      (recur (rest pixels-to-check)))))
-  pixels)
+(defn flood-fill-from-index-with-colour [pixs index new-colour]
+
+  (persistent! (loop [pixels-to-check (list index) pixels (transient (vec pixs))]
+                 (if (first pixels-to-check)
+                   (let [current (first pixels-to-check)]
+
+                     (println new-colour)
+                     (println current)
+
+                     (recur (rest pixels-to-check)
+                            (if (not= (get pixels current) new-colour)
+                              (assoc! pixels current new-colour
+
+                              ;; add neighbouhs
+                                    )
+                              pixels))
+                     )
+                    pixels))))
 
 (defn flood-fill-pixels [pixels]
   (let [enumerated-pixels (zipmap pixels (iterate inc 0))
-        index (find enumerated-pixels 255)]
-       (flood-fill-from-index-with-colour pixels index 100))
+        index (second (find enumerated-pixels 255))]
+    (println "index")
+    (println index)
+    (flood-fill-from-index-with-colour pixels index 100))
   )
 
 (defn flood-fill-image [image]
-   (pixelfilter flood-fill-pixels image))
+  (pixelfilter flood-fill-pixels image))
 
 (deftype Filter [^BufferedImageOp image-op]
   clojure.lang.IFn
-    (invoke [this image]
-      (let [^BufferedImage image image dest-img (.createCompatibleDestImage image-op image (.getColorModel image))]
-        (.filter image-op image dest-img) dest-img))
-    (applyTo [this args] (clojure.lang.AFn/applyToHelper this args)))
+  (invoke [this image]
+          (let [^BufferedImage image image dest-img (.createCompatibleDestImage image-op image (.getColorModel image))]
+            (.filter image-op image dest-img) dest-img))
+  (applyTo [this args] (clojure.lang.AFn/applyToHelper this args)))
 
 (defn dilate []
-;  "Creates a simple blur filter (3x3 pixel) blur"
-    (Filter. (com.jhlabs.image.MinimumFilter.)))
+  ;  "Creates a simple blur filter (3x3 pixel) blur"
+  (Filter. (com.jhlabs.image.MinimumFilter.)))
 
 (defn runProgram []
   (show (flood-fill-image ((dilate) (threshold plankton-img))) :zoom 5.0))
