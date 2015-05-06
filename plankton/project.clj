@@ -7,4 +7,5 @@
                  [net.mikera/imagez "0.5.0"]]
   :main ^:skip-aot plankton.core
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :plugins [[cider/cider-nrepl "0.8.2"]]
+)
