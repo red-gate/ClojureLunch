@@ -42,36 +42,41 @@
 (defn threshold [image]
   (pixelfilter threshold-pixels image))
 
+(defn neighbours [index width length] 
+  (let [valid? #(and (>= % 0) (< % length))]  
+  (filter valid? [(dec index) (inc index) (+ index width) (- index width)])
+  ))
 
-(defn flood-fill-from-index-with-colour [pixs index new-colour]
+(defn flood-fill-from-index-with-colour [pixs index old-colour new-colour]
 
-  (persistent! (loop [pixels-to-check (list index) pixels (transient (vec pixs))]
+  (persistent! (loop [pixels-to-check (list index)
+                      pixels (transient (vec pixs))]
                  (if (first pixels-to-check)
-                   (let [current (first pixels-to-check)]
+                   (let [current (first pixels-to-check)
+                        
+                         ]
 
-                     (println new-colour)
-                     (println current)
-
-                     (recur (rest pixels-to-check)
-                            (if (not= (get pixels current) new-colour)
-                              (assoc! pixels current new-colour
-
-                              ;; add neighbouhs
-                                    )
-                              pixels))
+                     (if (= (get pixels current) old-colour) 
+                       (recur (concat (rest pixels-to-check) 
+                                      (neighbours current (.getWidth plankton-img) 
+                                                  (count pixels)))
+                              (assoc! pixels current new-colour)) 
+                       (recur (rest pixels-to-check)  pixels)
+                       )
                      )
                     pixels))))
 
 
 (defn flood-fill-pixels [pixels]
   (let [enumerated-pixels (zipmap pixels (iterate inc 0))
-        index (second (find enumerated-pixels 255))]
+        old-colour 255
+        index (second (find enumerated-pixels old-colour))]
     (println "index")
     (println index)
-    (flood-fill-from-index-with-colour pixels index 100))
+    (flood-fill-from-index-with-colour pixels index old-colour 210))
   )
 
-(flood-fill-pixels [0 255 255 0])
+;;(flood-fill-pixels [0 255 255 0])
 
 
 (defn flood-fill-image [image]
