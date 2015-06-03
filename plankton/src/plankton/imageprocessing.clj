@@ -1,6 +1,6 @@
 (ns plankton.imageprocessing)
 
-(defrecord Image [bytes width height])
+(defrecord Imaje [bytes width height])
 
 (defn average-pixel-value [pixels]
   (/ (reduce + 0 (map int pixels)) (count pixels)))
@@ -14,3 +14,5 @@
         0)
      pixels)
     ))
+
+

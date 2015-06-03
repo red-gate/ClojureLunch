@@ -17,17 +17,25 @@
 
 (defn byte-mangling [b] (int (bit-and b 0xFF)))
 
-(defn seq-map-byte-array [f b]
-  (byte-array (f (seq b))))
+(defn to-imaje [image]
+  (->Imaje (map byte-mangling (get-pixels image)) (.getWidth image) (.getHeight image)))
 
-(defn pixelfilter [f image]
-  (let [pixels (get-pixels image)]
-    (set-pixels image (seq-map-byte-array (comp f #(map byte-mangling %)) pixels))
-    image
+(defn into-image [imaje image]
+            (set-pixels image (byte-array (:bytes imaje)))
+  image)
+
+(defn apply-filter [f image]
+  (let [imaje (to-imaje image)]
+    (into-image (f imaje) image)
+
 ))
 
+(:bytes (->Imaje [] 4 5))
+(show (into-image
+       plankton-img) :zoom 7.0)
+
 (defn threshold [image]
-  (threshold-pixels image))
+  (apply-filter threshold-pixels image))
 
 ;; (defn neighbours [index width length]
 ;;   (let [valid? #(and (>= % 0) (< % length))]
@@ -67,7 +75,7 @@
 
 
 ;; (defn flood-fill-image [image]
-;;   (pixelfilter flood-fill-pixels image))
+;;   (apply-filter flood-fill-pixels image))
 
 ;; (deftype Filter [^BufferedImageOp image-op]
 ;;   clojure.lang.IFn
@@ -90,7 +98,7 @@
 ;  [& args]
 ;  (nrepl-server/start-server :port 7888 :handler cider-nrepl-handler))
 
-(def run (runProgram))
+;(def run (runProgram))
 
 (def plak-pix (get-pixels plankton-img))
 
