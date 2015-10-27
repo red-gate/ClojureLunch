@@ -32,7 +32,9 @@
 
 (defn fixed-key-code
   [k]
-  (eval (u/gdx-field "Input$Keys" (u/key->upper k))))
+  (.get 
+   (first (filter (fn [x] (= (.getName x) (u/key->upper k)))
+                  (.getDeclaredFields com.badlogic.gdx.Input$Keys))) nil))
 
 (defn fixed-key-pressed?
   [k]
