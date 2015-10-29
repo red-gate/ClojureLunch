@@ -10,14 +10,21 @@
 (defn update-screen!
   [screen entities]
   (doseq [{:keys [x y height me? to-destroy]} entities]
-    (when me?
-      (position! screen x y)
-      (when (< y (- height))
-        (set-screen! super-koalio main-screen text-screen)))
     (when-let [[[tile-x tile-y] layer] to-destroy]
       (tiled-map-layer! (tiled-map-layer screen layer)
-                        :set-cell tile-x tile-y nil)))
+                        :set-cell tile-x tile-y nil)) 
+    (when me?
+      (when (< y (- height))
+        (set-screen! super-koalio main-screen text-screen))))
   (map #(dissoc % :to-destroy) entities))
+
+(defn render-screens! 
+ [screen entities]
+ 
+ (doseq [{:keys [x y me?]} entities]
+    (when me? (position! screen x y))
+    (render! screen entities))
+ entities)
 
 (defscreen main-screen
   :on-show
@@ -43,8 +50,8 @@
                            (e/prevent-move screen)
                            (e/animate screen)))
                     entities))
-             (render! screen)
-             (update-screen! screen)))
+             (update-screen! screen) 
+             (render-screens! screen)))
   
   :on-resize
   (fn [{:keys [width height] :as screen} entities]
