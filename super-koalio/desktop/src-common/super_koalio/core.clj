@@ -5,6 +5,8 @@
             [super-koalio.entities :as e]
             [super-koalio.utils :as u]))
 
+(def global-entities (atom nil))
+
 (declare super-koalio main-screen text-screen)
 
 (defn update-screen!
@@ -20,44 +22,13 @@
 
 (defn render-screens! 
  [screen entities]
- 
+
  (doseq [{:keys [x y me?]} entities]
-    (when me? (position! screen x y))
-    (render! screen entities))
+   (when me? (position! screen x y)
+         (render! screen entities)
+         (render! screen (map (fn [entity] (update entity :x (fn [old] (+ old 1)))) entities)))
+   (reset! global-entities entities))
  entities)
-
-(defscreen main-screen
-  :on-show
-  (fn [screen entities]
-    (->> (orthogonal-tiled-map "level1.tmx" (/ 1 u/pixels-per-tile))
-         (update! screen :timeline [] :camera (orthographic) :renderer))
-    (let [sheet (texture "koalio.png")
-          tiles (texture! sheet :split 18 26)
-          player-images (for [col [0 1 2 3 4]]
-                          (texture (aget tiles 0 col)))]
-      [(apply e/create [20 10] [:dpad-up :dpad-left :dpad-right] player-images)
-       (apply e/create [10 10] [:w :a :d] player-images)]))
-  
-  :on-render
-  (fn [screen entities]
-    (clear! 0.5 0.5 1 1)
-    (screen! text-screen :on-score :something-crazy (reduce #(+ %1 (or (:player-score %2) 0 )) 0 entities))
-    (some->> (if (or (key-pressed? :space) (u/touched? :center))
-               (rewind! screen 2)
-               (map (fn [entity]
-                      (->> entity
-                           (e/move screen)
-                           (e/prevent-move screen)
-                           (e/animate screen)))
-                    entities))
-             (update-screen! screen) 
-             (render-screens! screen)))
-  
-  :on-resize
-  (fn [{:keys [width height] :as screen} entities]
-    (width! screen 10)))
-
-(def global-entities (atom nil))
 
 (defscreen text-screen
   :on-show
@@ -98,3 +69,35 @@
   :on-create
   (fn [this]
     (set-screen! this main-screen text-screen)))
+
+
+(defscreen main-screen
+  :on-show
+  (fn [screen entities]
+    (->> (orthogonal-tiled-map "level1.tmx" (/ 1 u/pixels-per-tile))
+         (update! screen :timeline [] :camera (orthographic) :renderer))
+    (let [sheet (texture "koalio.png")
+          tiles (texture! sheet :split 18 26)
+          player-images (for [col [0 1 2 3 4]]
+                          (texture (aget tiles 0 col)))]
+      [(apply e/create [20 10] [:dpad-up :dpad-left :dpad-right] player-images)
+       (apply e/create [10 10] [:w :a :d] player-images)]))
+  
+  :on-render
+  (fn [screen entities]
+    (clear! 0.5 0.5 1 1)
+    (screen! text-screen :on-score :something-crazy (reduce #(+ %1 (or (:player-score %2) 0 )) 0 entities))
+    (some->> (if (or (key-pressed? :space) (u/touched? :center))
+               (rewind! screen 2)
+               (map (fn [entity]
+                      (->> entity
+                           (e/move screen)
+                           (e/prevent-move screen)
+                           (e/animate screen)))
+                    entities))
+             (update-screen! screen) 
+             (render-screens! screen)))
+  
+  :on-resize
+  (fn [{:keys [width height] :as screen} entities]
+    (width! screen 10)))
