@@ -22,7 +22,7 @@
          :y-velocity 0
          :x x
          :y y
-         :get-x u/get-x-velocity
+         :get-x u/get-x-velocity-from-keys
          :get-y u/get-y-velocity
          :decelerate u/decelerate
          :jump-key jump-key
