@@ -41,6 +41,18 @@
   (input! :is-key-pressed (fixed-key-code k))
   )
 
+(defn get-x-velocity
+  [{:keys [me? x-velocity]} direction]
+  (if me?
+    (cond
+      (= direction :left)
+      (* -1 max-velocity)
+      (= direction :right)
+      max-velocity
+      :else
+      x-velocity)
+    x-velocity))
+
 (defn get-x-velocity-from-keys [ {:keys [me? x-velocity left-key right-key] :as obj}] 
   (cond (or (fixed-key-pressed? left-key) (touched? :left))
         (get-x-velocity obj :left)
@@ -48,27 +60,21 @@
         (get-x-velocity obj :right))
   )
 
-(defn get-x-velocity
-  [{:keys [me? x-velocity]} direction]
-  (if me?
-    (cond
-      (eq direction :left)
-      (* -1 max-velocity)
-      (eq direction :right)
-      max-velocity
-      :else
-      x-velocity)
-    x-velocity))
 
 (defn get-y-velocity
-  [{:keys [me? y-velocity can-jump? jump-key]}]
+  [{:keys [me? y-velocity can-jump?]} jump-pressed]
   (if me?
     (cond
-      (and can-jump? (or (fixed-key-pressed? jump-key) (touched? :up)))
+      (and can-jump? jump-pressed)
       max-jump-velocity
       :else
       y-velocity)
     y-velocity))
+
+(defn get-y-velocity-from-keys
+  [{:keys [jump-key] :as e}]
+  (get-y-velocity e (or (fixed-key-pressed? jump-key) (touched? :up)))
+)
 
 (defn get-direction
   [{:keys [x-velocity direction]}]

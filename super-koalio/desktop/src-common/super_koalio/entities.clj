@@ -3,6 +3,14 @@
             [play-clj.g2d :refer :all]
             [super-koalio.utils :as u]))
 
+(defn go-right
+  [e]
+  (u/get-x-velocity e :right))
+
+(defn jump-ifblocked 
+  [{:keys [x-velocity] :as e}]
+  (u/get-y-velocity e (if (= x-velocity 0) :jump nil)))
+
 (defn create
   [[x y] [jump-key left-key right-key] stand jump & walk]
   (assoc stand
@@ -22,8 +30,8 @@
          :y-velocity 0
          :x x
          :y y
-         :get-x u/get-x-velocity-from-keys
-         :get-y u/get-y-velocity
+         :get-x go-right
+         :get-y jump-ifblocked
          :decelerate u/decelerate
          :jump-key jump-key
          :left-key left-key
@@ -32,6 +40,7 @@
          :can-jump? false
          :direction :right
          :player-score 0))
+  
 
 (defn move
   [{:keys [delta-time]} {:keys [x y can-jump? get-x get-y decelerate] :as entity}]
