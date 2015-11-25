@@ -12,7 +12,7 @@
   (u/get-y-velocity e (if (= x-velocity 0) :jump nil)))
 
 (defn create
-  [[x y] [jump-key left-key right-key] stand jump & walk]
+  [[x y] [jump-key left-key right-key] [walk-ai jump-ai] stand jump & walk]
   (assoc stand
          :stand-right stand
          :stand-left (texture stand :flip true false)
@@ -30,8 +30,8 @@
          :y-velocity 0
          :x x
          :y y
-         :get-x go-right
-         :get-y jump-ifblocked
+         :get-x walk-ai
+         :get-y jump-ai
          :decelerate u/decelerate
          :jump-key jump-key
          :left-key left-key
