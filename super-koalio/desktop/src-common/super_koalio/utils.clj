@@ -54,11 +54,15 @@
     x-velocity))
 
 (defn get-x-velocity-from-keys [ {:keys [me? x-velocity left-key right-key] :as obj}] 
-  (cond (or (fixed-key-pressed? left-key) (touched? :left))
-        (get-x-velocity obj :left)
-        (or (fixed-key-pressed? right-key) (touched? :right))
-        (get-x-velocity obj :right))
-  )
+  (get-x-velocity obj 
+                  (cond 
+                    (or (fixed-key-pressed? left-key) (touched? :left))
+                    :left
+                    (or (fixed-key-pressed? right-key) (touched? :right))
+                    :right
+                    :else
+                    nil
+                    )))
 
 
 (defn get-y-velocity

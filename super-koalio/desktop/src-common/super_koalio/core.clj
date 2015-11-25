@@ -29,7 +29,7 @@
           player-images (for [col [0 1 2 3 4]]
                           (texture (aget tiles 0 col)))]
       [(apply e/create [10 10] [:dpad-up :dpad-left :dpad-right] [e/go-right e/jump-ifblocked] player-images)
-       (apply e/create [20 10] [:w :a :d]  [e/go-right u/get-y-velocity-from-keys] player-images)]))
+       (apply e/create [20 10] [:w :a :d]  [u/get-x-velocity-from-keys u/get-y-velocity-from-keys] player-images)]))
   
   :on-render
   (fn [screen entities]
