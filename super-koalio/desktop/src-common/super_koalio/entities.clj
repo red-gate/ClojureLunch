@@ -11,6 +11,11 @@
   [{:keys [x-velocity] :as e}]
   (u/get-y-velocity e (if (= x-velocity 0) :jump nil)))
 
+(defn ai-set-direction
+  [{:keys [ai-direction] :as e}]
+  (u/get-x-velocity e ai-direction)
+  )
+
 (defn create
   [[x y] [jump-key left-key right-key] [walk-ai jump-ai] stand jump & walk]
   (assoc stand

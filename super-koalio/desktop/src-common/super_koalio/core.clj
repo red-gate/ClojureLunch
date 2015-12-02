@@ -28,8 +28,8 @@
           tiles (texture! sheet :split 18 26)
           player-images (for [col [0 1 2 3 4]]
                           (texture (aget tiles 0 col)))]
-      [(apply e/create [10 10] [:dpad-up :dpad-left :dpad-right] [e/go-right e/jump-ifblocked] player-images)
-       (apply e/create [20 10] [:w :a :d]  [u/get-x-velocity-from-keys u/get-y-velocity-from-keys] player-images)]))
+      [(apply e/create [10 10] [:dpad-up :dpad-left :dpad-right] [e/ai-set-direction e/jump-ifblocked] player-images)
+]))
   
   :on-render
   (fn [screen entities]
@@ -39,6 +39,7 @@
                (rewind! screen 2)
                (map (fn [entity]
                       (->> entity
+                           (#(assoc % :ai-direction :right))
                            (e/move screen)
                            (e/prevent-move screen)
                            (e/animate screen)))
