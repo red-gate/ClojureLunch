@@ -90,11 +90,24 @@
 
 (defn get-touching-tile
   [screen {:keys [x y width height]} & layer-names]
+  (->> 
+   (let [widths (range (int x) (+ x width))
+         heights (range (int y) (+ y height))] 
+     (get-tiles-in screen layer-names heights widths))
+   (drop-while nil?) 
+   first))
+
+(defn get-tiles-in
+  [screen layer-names heights widths]
   (let [layers (map #(tiled-map-layer screen %) layer-names)]
-    (->> (for [tile-x (range (int x) (+ x width))
-               tile-y (range (int y) (+ y height))]
-           (some #(when (tiled-map-cell % tile-x tile-y)
-                    [tile-x tile-y])
-                 layers))
-         (drop-while nil?)
-         first)))
+       (for [tile-x widths
+             tile-y heights]
+         (some #(when (tiled-map-cell % tile-x tile-y)
+                  [tile-x tile-y])
+               layers))))
+(defn get-tiles-in-layer
+  [screen & layer-names]
+  (let [layers (map #(tiled-map-layer screen %) layer-names)]
+    
+    )
+  )
