@@ -19,6 +19,8 @@
                         :set-cell tile-x tile-y nil)))
   (map #(dissoc % :to-destroy) entities))
 
+(def global-entities (atom nil))
+
 (defscreen main-screen
   :on-show
   (fn [screen entities]
@@ -34,6 +36,7 @@
   :on-render
   (fn [screen entities]
     (clear! 0.5 0.5 1 1)
+    (reset! global-entities (u/get-tiles-on-screen screen "walls"))
     (screen! text-screen :on-score :something-crazy (reduce #(+ %1 (or (:player-score %2) 0 )) 0 entities))
     (some->> (if (or (key-pressed? :space) (u/touched? :center))
                (rewind! screen 2)
@@ -50,8 +53,6 @@
   :on-resize
   (fn [{:keys [width height] :as screen} entities]
     (width! screen 20)))
-
-(def global-entities (atom nil))
 
 (defscreen text-screen
   :on-show

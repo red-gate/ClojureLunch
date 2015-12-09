@@ -88,15 +88,6 @@
     :else
     direction))
 
-(defn get-touching-tile
-  [screen {:keys [x y width height]} & layer-names]
-  (->> 
-   (let [widths (range (int x) (+ x width))
-         heights (range (int y) (+ y height))] 
-     (get-tiles-in screen layer-names heights widths))
-   (drop-while nil?) 
-   first))
-
 (defn get-tiles-in
   [screen layer-names heights widths]
   (let [layers (map #(tiled-map-layer screen %) layer-names)]
@@ -105,9 +96,23 @@
          (some #(when (tiled-map-cell % tile-x tile-y)
                   [tile-x tile-y])
                layers))))
-(defn get-tiles-in-layer
+
+(defn get-tiles-on-screen
   [screen & layer-names]
-  (let [layers (map #(tiled-map-layer screen %) layer-names)]
-    
-    )
+  (let [x (x screen)
+        y (y screen)
+        width (width screen)]
+    (when-let [height (height screen)]
+      (when-let [widths (range (int x) (+ x width))] 
+        (when-let [heights (range (int y) (+ y height))] 
+          (drop-while nil? (get-tiles-in screen layer-names heights widths))))))
   )
+ 
+(defn get-touching-tile
+  [screen {:keys [x y width height]} & layer-names]
+  (->> 
+   (let [widths (range (int x) (+ x width))
+         heights (range (int y) (+ y height))] 
+     (get-tiles-in screen layer-names heights widths))
+   
+   first))
