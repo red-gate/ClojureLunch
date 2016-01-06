@@ -20,6 +20,24 @@
   (map #(dissoc % :to-destroy) entities))
 
 (def global-entities (atom nil))
+(defn do-ai
+  [screen entity]
+  (let [{:keys [x y]} entity
+        coins (filter identity (u/get-tiles-on-screen screen "coins"))
+        coin (first coins)]
+    (when-let [[cx cy] coin]
+      (if (< cx x) :left :right)
+      )))
+
+(defn do-ai-y
+  [screen entity]
+  (let [{:keys [x y]} entity
+        coins (filter identity (u/get-tiles-on-screen screen "coins"))
+        coin (first coins)]
+    (when-let [[cx cy] coin]
+      (when (> 1 (Math/abs (- cx x)))
+        (if (< y cy) :jump nil))
+      )))
 
 (defscreen main-screen
   :on-show
@@ -30,19 +48,20 @@
           tiles (texture! sheet :split 18 26)
           player-images (for [col [0 1 2 3 4]]
                           (texture (aget tiles 0 col)))]
-      [(apply e/create [10 10] [:dpad-up :dpad-left :dpad-right] [e/ai-set-direction e/jump-ifblocked] player-images)
+      [(apply e/create [10 10] [:dpad-up :dpad-left :dpad-right] [e/ai-set-direction-x e/ai-set-direction-y] player-images)
 ]))
   
   :on-render
   (fn [screen entities]
     (clear! 0.5 0.5 1 1)
-    (reset! global-entities (u/get-tiles-on-screen screen "walls"))
+    (reset! global-entities (filter identity (u/get-tiles-on-screen screen "coins")))
     (screen! text-screen :on-score :something-crazy (reduce #(+ %1 (or (:player-score %2) 0 )) 0 entities))
     (some->> (if (or (key-pressed? :space) (u/touched? :center))
                (rewind! screen 2)
                (map (fn [entity]
                       (->> entity
-                           (#(assoc % :ai-direction :right))
+                           (#(assoc % :ai-direction-x (do-ai screen %)))
+                           (#(assoc % :ai-direction-y (do-ai-y screen %)))
                            (e/move screen)
                            (e/prevent-move screen)
                            (e/animate screen)))
