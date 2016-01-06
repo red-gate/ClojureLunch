@@ -101,10 +101,10 @@
   [screen & layer-names]
   (let [x (x screen)
         y (y screen)
-        width (width screen)]
-    (when-let [height (height screen)]
-      (when-let [widths (range (int x) (+ x width))] 
-        (when-let [heights (range (int y) (+ y height))] 
+        width (/ (width screen) 2)]
+    (when-let [height (and (height screen) (/ (height screen) 2))]
+      (when-let [widths (range (int (- x width)) (+ x width))] 
+        (when-let [heights (range (int (- y height)) (+ y height))] 
           (drop-while nil? (get-tiles-in screen layer-names heights widths))))))
   )
  
