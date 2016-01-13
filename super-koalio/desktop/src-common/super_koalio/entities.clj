@@ -7,7 +7,7 @@
   [e]
   (u/get-x-velocity e :right))
 
-(defn jump-ifblocked 
+(defn jump-if-blocked 
   [{:keys [x-velocity] :as e}]
   (u/get-y-velocity e (if (= x-velocity 0) :jump nil)))
 

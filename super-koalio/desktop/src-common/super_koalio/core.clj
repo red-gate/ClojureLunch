@@ -20,24 +20,27 @@
   (map #(dissoc % :to-destroy) entities))
 
 (def global-entities (atom nil))
+
+(defn do-ai-x
+  [screen entity]
+  )
+
+(defn do-ai-y
+  [screen entity]
+  )
+
 (defn do-ai
   [screen entity]
   (let [{:keys [x y]} entity
         coins (filter identity (u/get-tiles-on-screen screen "coins"))
-        coin (first coins)]
+        coin (first coins)]  
     (when-let [[cx cy] coin]
-      (if (< cx x) :left :right)
-      )))
-
-(defn do-ai-y
-  [screen entity]
-  (let [{:keys [x y]} entity
-        coins (filter identity (u/get-tiles-on-screen screen "coins"))
-        coin (first coins)]
-    (when-let [[cx cy] coin]
-      (when (> 1 (Math/abs (- cx x)))
-        (if (< y cy) :jump nil))
-      )))
+      
+      (cond 
+        (and (< (- x 0.5) cx (+ x 0.5)) (< y cy)) [nil :jump] 
+        (< cx x) [:left nil] 
+        (> cx x) [:right nil] 
+        :otherwise [nil (e/jump-if-blocked entity)]))))
 
 (defscreen main-screen
   :on-show
@@ -49,7 +52,7 @@
           player-images (for [col [0 1 2 3 4]]
                           (texture (aget tiles 0 col)))]
       [(apply e/create [10 10] [:dpad-up :dpad-left :dpad-right] [e/ai-set-direction-x e/ai-set-direction-y] player-images)
-]))
+       ]))
   
   :on-render
   (fn [screen entities]
@@ -59,12 +62,13 @@
     (some->> (if (or (key-pressed? :space) (u/touched? :center))
                (rewind! screen 2)
                (map (fn [entity]
-                      (->> entity
-                           (#(assoc % :ai-direction-x (do-ai screen %)))
-                           (#(assoc % :ai-direction-y (do-ai-y screen %)))
-                           (e/move screen)
-                           (e/prevent-move screen)
-                           (e/animate screen)))
+                      (let [[ai-x ai-y] (do-ai screen entity)]
+                        (->> entity
+                             (#(assoc % :ai-direction-x ai-x))
+                             (#(assoc % :ai-direction-y ai-y))
+                             (e/move screen)
+                             (e/prevent-move screen)
+                             (e/animate screen))))
                     entities))
              (render! screen)
              (update-screen! screen)))
