@@ -8,8 +8,9 @@
   (u/get-x-velocity e :right))
 
 (defn jump-if-blocked 
-  [{:keys [x-velocity] :as e}]
-  (u/get-y-velocity e (if (= x-velocity 0) :jump nil)))
+  [screen {:keys [x-change x] :as e}]
+  (let [entity-x  (assoc e :x (+ (or x 0) (or x-change 0)))]
+    (u/get-y-velocity e (if (u/get-touching-tile screen entity-x "walls") :jump nil))))
 
 (defn ai-set-direction-x
   [{:keys [ai-direction-x] :as e}]

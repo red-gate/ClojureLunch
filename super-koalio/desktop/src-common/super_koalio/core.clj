@@ -31,16 +31,21 @@
 
 (defn do-ai
   [screen entity]
-  (let [{:keys [x y]} entity
+  (let [{:keys [x y can-jump?]} entity
         coins (filter identity (u/get-tiles-on-screen screen "coins"))
         coin (first coins)]  
     (when-let [[cx cy] coin]
-      
       (cond 
-        (and (< (- x 0.5) cx (+ x 0.5)) (< y cy)) [nil :jump] 
-        (< cx x) [:left nil] 
-        (> cx x) [:right nil] 
-        :otherwise [nil (e/jump-if-blocked entity)]))))
+        (and (< (- x 0.5) cx (+ x 0.5)) (< y cy)) 
+        (do (println "Jump for above coin")
+            [nil :jump])
+        (and can-jump? (< (+ cy 1) y)) 
+        (do (println "Run right to get coin below")  
+            [:right nil])
+        (< cx x) (do (println "Run for left coin")  
+                     [:left (e/jump-if-blocked screen entity)])
+        (> cx x) (do (println "Run for right coin")  [:right (e/jump-if-blocked screen entity)]) 
+        :otherwise (do (println "No coins")  [nil nil])))))
 
 (defscreen main-screen
   :on-show
@@ -57,7 +62,7 @@
   :on-render
   (fn [screen entities]
     (clear! 0.5 0.5 1 1)
-    (reset! global-entities (filter identity (u/get-tiles-on-screen screen "coins")))
+    (reset! global-entities {:screen screen :entities entities})
     (screen! text-screen :on-score :something-crazy (reduce #(+ %1 (or (:player-score %2) 0 )) 0 entities))
     (some->> (if (or (key-pressed? :space) (u/touched? :center))
                (rewind! screen 2)
