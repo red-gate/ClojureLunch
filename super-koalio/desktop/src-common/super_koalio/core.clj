@@ -29,23 +29,38 @@
   [screen entity]
   )
 
+(defn get-coin-logic 
+[screen entity state]
+  (let [{:keys [x y can-jump?]} entity
+        {:keys [coin]} state]
+    [(when-let [[cx cy] coin]
+       (cond 
+         (and (< (- x 0.5) cx (+ x 0.5)) (< y cy)) 
+         (do (println "Jump for above coin")
+             [nil :jump])
+         (and can-jump? (< (+ cy 1) y)) 
+         (do (println "Run right to get coin below")  
+             [:right nil])
+         (< cx x) (do (println "Run for left coin")  
+                      [:left (e/jump-if-blocked screen entity)])
+         (> cx x) (do (println "Run for right coin")  [:right (e/jump-if-blocked screen entity)]) 
+         :otherwise (do (println "No coins")  [nil nil])))
+     #(get-coin-logic %1 %2 state)]))
+
+(defn init-do-ai
+  [screen entity]
+  (let [
+        coins (filter identity (u/get-tiles-on-screen screen "coins"))
+        coin (first coins)]
+    (get-coin-logic screen entity {:coin coin})
+    ))
+
 (defn do-ai
   [screen entity]
-  (let [{:keys [x y can-jump?]} entity
-        coins (filter identity (u/get-tiles-on-screen screen "coins"))
-        coin (first coins)]  
-    (when-let [[cx cy] coin]
-      (cond 
-        (and (< (- x 0.5) cx (+ x 0.5)) (< y cy)) 
-        (do (println "Jump for above coin")
-            [nil :jump])
-        (and can-jump? (< (+ cy 1) y)) 
-        (do (println "Run right to get coin below")  
-            [:right nil])
-        (< cx x) (do (println "Run for left coin")  
-                     [:left (e/jump-if-blocked screen entity)])
-        (> cx x) (do (println "Run for right coin")  [:right (e/jump-if-blocked screen entity)]) 
-        :otherwise (do (println "No coins")  [nil nil])))))
+  (let [ai-f (or (:ai-function entity) init-do-ai)]  
+    (let [[x y next-ai] (ai-f screen entity)]
+      [[x y] (assoc entity :ai-function next-ai)]))
+)
 
 (defscreen main-screen
   :on-show
@@ -67,8 +82,8 @@
     (some->> (if (or (key-pressed? :space) (u/touched? :center))
                (rewind! screen 2)
                (map (fn [entity]
-                      (let [[ai-x ai-y] (do-ai screen entity)]
-                        (->> entity
+                      (let [[[ai-x ai-y] next-entity] (do-ai screen entity)]
+                        (->> next-entity
                              (#(assoc % :ai-direction-x ai-x))
                              (#(assoc % :ai-direction-y ai-y))
                              (e/move screen)
