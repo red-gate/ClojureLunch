@@ -8,3 +8,4 @@ pom.xml
 .idea/
 .nrepl-port
 target/
+haskell-cmd-game/.stack-work/
