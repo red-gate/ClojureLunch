@@ -3,6 +3,8 @@ module Lib
 
 import Control.Monad.State.Strict as S
 import System.Directory as D
+import Control.Exception
+import Data.Bifunctor (first)
 
 manyFunc :: ((String, Bool), Int)
 manyFunc = S.runState (do
@@ -27,6 +29,17 @@ someFunc s = do
 
 printContents :: FilePath -> IO ()
 printContents f = do
-  dirCont <- D.getDirectoryContents f
-  mapM putStrLn dirCont
-  return ()
+  eDirCont <- safeContents f
+  case eDirCont of
+    Right dirCont ->  do
+      mapM putStrLn dirCont
+      return ()
+    Left message -> do
+      putStrLn message
+      return ()
+
+
+safeContents :: FilePath -> IO (Either String [FilePath])
+safeContents f = do
+    eith <- try $ D.getDirectoryContents f
+    return $ first (\e -> show (e :: SomeException))  eith
