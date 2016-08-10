@@ -29,6 +29,7 @@ executable haskell-cmd-game-exe
   build-depends:       base
                      , mtl
                      , haskell-cmd-game
+                     , gloss
   default-language:    Haskell2010
 
 test-suite haskell-cmd-game-test
