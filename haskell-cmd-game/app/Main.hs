@@ -1,5 +1,6 @@
 module Main where
 
+import Prelude hiding (Left, Right)
 import Lib
 import Control.Monad.State.Strict
 import System.IO
@@ -7,13 +8,18 @@ import Graphics.Gloss
 import qualified Graphics.Gloss.Interface.Pure.Game as G
 import Data.Monoid ((<>))
 
+
+data DirectionX = Left | Right
+  deriving (Show, Eq)
+
 data DirectionY = Up | Down
   deriving (Show, Eq)
 
 data Bat = Bat (Maybe DirectionY) Float
   deriving Show
 
-type Ball = (Float, Float)
+data Ball = Ball DirectionX DirectionY (Float, Float)
+  deriving Show
 
 data World = MyWorld { ball :: Ball
                      , p1 :: Bat
@@ -23,15 +29,27 @@ data World = MyWorld { ball :: Ball
 initialBat :: Bat
 initialBat = Bat Nothing 0
 
-initialWorld = MyWorld { ball = (20,20), p1 = initialBat, p2 = initialBat}
+initialBall :: Ball
+initialBall = Ball Right Down (20, 20)
+
+initialWorld = MyWorld { ball = initialBall, p1 = initialBat, p2 = initialBat}
 
 step :: Float -> World -> World
 step d (MyWorld b p1 p2) =
   MyWorld (stepBall d b)  (stepPlayer d p1) (stepPlayer d p2)
 
 stepBall :: Float -> Ball -> Ball
-stepBall delta (x,y) = (x + ballSpeed * delta, y) 
-
+stepBall delta (Ball dirX dirY (x,y)) =
+  let move = ballSpeed * delta in
+  let xF = case dirX of
+        Right -> (+)
+        Left -> (-)
+  in
+    let yF = case dirY of
+          Up -> (+)
+          Down -> (-) in
+    Ball dirX dirY (xF x move, yF y move) 
+  
 stepPlayer d b@(Bat Nothing _) = b
 stepPlayer d (Bat c@(Just dir) p) = let f = case dir of
                                           Up -> (+)
@@ -46,7 +64,7 @@ worldToPicture (MyWorld b p1 p2) = drawBall b <> (tP1 $ drawBat p1) <> (tP2 $ dr
     tP2 = translate batTransDist 0
     
 drawBall :: Ball -> Picture  
-drawBall (x,y) = translate x y (circleSolid 60)
+drawBall (Ball _ _ (x,y)) = translate x y (circleSolid 60)
 
 drawBat :: Bat -> Picture
 drawBat (Bat _ pos) = translate 0 pos (rectangleSolid batWidth batHeight)
