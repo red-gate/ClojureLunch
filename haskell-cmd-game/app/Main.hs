@@ -4,10 +4,11 @@ import Lib
 import Control.Monad.State.Strict
 import System.IO
 import Graphics.Gloss
+import qualified Graphics.Gloss.Interface.Pure.Game as G
 import Data.Monoid ((<>))
 
 data DirectionY = Up | Down
-  deriving Show
+  deriving (Show, Eq)
 
 data Bat = Bat (Maybe DirectionY) Float
   deriving Show
@@ -20,7 +21,7 @@ data World = MyWorld { ball :: Ball
  deriving Show
 
 initialBat :: Bat
-initialBat = Bat (Just Down) 0
+initialBat = Bat Nothing 0
 
 initialWorld = MyWorld { ball = (20,20), p1 = initialBat, p2 = initialBat}
 
@@ -50,8 +51,24 @@ drawBall (x,y) = translate x y (circleSolid 60)
 drawBat :: Bat -> Picture
 drawBat (Bat _ pos) = translate 0 pos (rectangleSolid batWidth batHeight)
 
+toggle :: G.KeyState -> DirectionY -> Bat -> Bat
+toggle G.Down dir (Bat _ p) = Bat (Just dir) p 
+toggle G.Up dir (Bat (Just oldDir) p) = let d = if (dir == oldDir) then Nothing else Just oldDir in
+  Bat d p 
+toggle G.Up _ b = b
+
+input :: G.Event -> World -> World
+input (G.EventKey (G.Char key) state _ _) w@(MyWorld _ p1 p2)=
+  case key of
+    'a' -> w {p1 = toggle state Up p1}
+    'z' -> w {p1 = toggle state Down p1}
+    'k' -> w {p2 = toggle state Up p2}
+    'm' -> w {p2 = toggle state Down p2}
+    _ -> w
+input _ w = w 
+
 main :: IO ()
-main = play (InWindow "Nice Window" (gameWidth, gameHeight) (10, 10)) white 30 initialWorld worldToPicture (\_ -> id) step
+main = play (InWindow "Nice Window" (gameWidth, gameHeight) (10, 10)) white 30 initialWorld worldToPicture input step
 
 
     
