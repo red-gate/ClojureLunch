@@ -18,7 +18,7 @@ data DirectionY = Up | Down
 data Bat = Bat (Maybe DirectionY) Float
   deriving Show
 
-data Ball = Ball DirectionX DirectionY (Float, Float)
+data Ball = Ball DirectionX DirectionY Float (Float, Float)
   deriving Show
 
 data World = MyWorld { ball :: Ball
@@ -30,7 +30,7 @@ initialBat :: Bat
 initialBat = Bat Nothing 0
 
 initialBall :: Ball
-initialBall = Ball Right Down (20, 20)
+initialBall = Ball Right Down 60 (-150, 20)
 
 initialWorld = MyWorld { ball = initialBall, p1 = initialBat, p2 = initialBat}
 
@@ -39,17 +39,40 @@ step d (MyWorld b p1 p2) =
   MyWorld (stepBall d b)  (stepPlayer d p1) (stepPlayer d p2)
 
 stepBall :: Float -> Ball -> Ball
-stepBall delta (Ball dirX dirY (x,y)) =
+stepBall delta (Ball dirX dirY width (x,y)) =
   let move = ballSpeed * delta in
-  let xF = case dirX of
+  let fX = case dirX of
         Right -> (+)
         Left -> (-)
   in
-    let yF = case dirY of
-          Up -> (+)
-          Down -> (-) in
-    Ball dirX dirY (xF x move, yF y move) 
-  
+    let (dX, x') = edgeDetectX width $ (dirX, fX x move) in
+    let (dY, y') = edgeDetectY width $ stepBallY move dirY y in
+    Ball dX dY width (x', y') 
+
+stepBallY :: Float -> DirectionY -> Float -> (DirectionY, Float)
+stepBallY move dirY y = let fY = case dirY of
+                             Up -> (+)
+                             Down -> (-) in
+  (dirY, fY y move)
+
+edgeDetectY :: Float -> (DirectionY, Float) -> (DirectionY, Float)
+edgeDetectY width (dY, y) = if abs(y) + width >= (gameHeight/2)
+                     then (flipDirectionY dY, y)
+                     else (dY, y)
+                       
+flipDirectionY :: DirectionY -> DirectionY
+flipDirectionY Up = Down
+flipDirectionY Down = Up
+
+edgeDetectX :: Float -> (DirectionX, Float) -> (DirectionX, Float)
+edgeDetectX width (dX, x) = if abs(x) + width >= (gameWidth/2)
+                     then (flipDirectionX dX, x)
+                     else (dX, x)
+                       
+flipDirectionX :: DirectionX -> DirectionX
+flipDirectionX Left = Right
+flipDirectionX Right = Left
+
 stepPlayer d b@(Bat Nothing _) = b
 stepPlayer d (Bat c@(Just dir) p) = let f = case dir of
                                           Up -> (+)
@@ -62,9 +85,9 @@ worldToPicture (MyWorld b p1 p2) = drawBall b <> (tP1 $ drawBat p1) <> (tP2 $ dr
     batTransDist = (gameWidth - batWidth) / 2
     tP1 = translate (- batTransDist) 0
     tP2 = translate batTransDist 0
-    
+
 drawBall :: Ball -> Picture  
-drawBall (Ball _ _ (x,y)) = translate x y (circleSolid 60)
+drawBall (Ball _ _ width (x,y)) = translate x y (circleSolid width)
 
 drawBat :: Bat -> Picture
 drawBat (Bat _ pos) = translate 0 pos (rectangleSolid batWidth batHeight)
@@ -91,7 +114,7 @@ main = play (InWindow "Nice Window" (gameWidth, gameHeight) (10, 10)) white 30 i
 
     
 ballSpeed :: Float
-ballSpeed = 10
+ballSpeed = 50
 
 batWidth :: Num a => a
 batWidth = 10
