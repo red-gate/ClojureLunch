@@ -45,6 +45,7 @@ data World = MyWorld
   { ball :: Ball
   , p1 :: Bat
   , p2 :: Bat
+  , score :: (Int, Int)
   } deriving (Show)
 
 initialBat :: Bat
@@ -58,13 +59,14 @@ initialWorld =
   { ball = initialBall
   , p1 = initialBat
   , p2 = initialBat
+  , score = (0,0)
   }
 
 batRectangle :: Float -> Float -> Rectangle
 batRectangle x y = (x, y, batWidth, batHeight)
 
 step :: Float -> World -> World
-step d (MyWorld b p1@(Bat _ p1y) p2@(Bat _ p2y)) =
+step d (MyWorld b p1@(Bat _ p1y) p2@(Bat _ p2y) score) =
   let batTransDist = (gameWidth - batWidth) / 2
   in MyWorld
        (stepBall
@@ -73,6 +75,7 @@ step d (MyWorld b p1@(Bat _ p1y) p2@(Bat _ p2y)) =
           b)
        (stepPlayer d p1)
        (stepPlayer d p2)
+       score
 
 stepBall :: Float -> [Rectangle] -> Ball -> Ball
 stepBall delta rectangles (Ball dirX dirY width (x, y)) =
@@ -153,12 +156,20 @@ stepPlayer d (Bat c@(Just dir) p) =
   in Bat c (f p (d * ballSpeed))
 
 worldToPicture :: World -> Picture
-worldToPicture (MyWorld b p1 p2) =
-  drawBall b <> (tP1 $ drawBat p1) <> (tP2 $ drawBat p2)
+worldToPicture (MyWorld b p1 p2 score) =
+  drawBall b <> (tP1 $ drawBat p1) <> (tP2 $ drawBat p2) <> (drawScore score)
   where
     batTransDist = (gameWidth - batWidth) / 2
     tP1 = translate (-batTransDist) 0
     tP2 = translate batTransDist 0
+
+drawScore :: (Int,Int) -> Picture
+drawScore (i, j) =
+  let f x = translate x 0 . text . show
+      scoreWidth = 50
+      colonWidth = 20
+      w = scoreWidth + colonWidth
+  in translate (colonWidth /2) 0 $ f (-w) i <> text  ":" <> f colonWidth j
 
 drawBall :: Ball -> Picture
 drawBall (Ball _ _ width (x, y)) = translate x y (circleSolid width)
@@ -177,7 +188,7 @@ toggle G.Up dir (Bat (Just oldDir) p) =
 toggle G.Up _ b = b
 
 input :: G.Event -> World -> World
-input (G.EventKey (G.Char key) state _ _) w@(MyWorld _ p1 p2) =
+input (G.EventKey (G.Char key) state _ _) w@(MyWorld _ p1 p2 _) =
   case key of
     'a' ->
       w
