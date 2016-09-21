@@ -80,42 +80,50 @@ step d (MyWorld b p1@(Bat _ p1y) p2@(Bat _ p2y) score) =
 stepBall :: Float -> [Rectangle] -> Ball -> Ball
 stepBall delta rectangles (Ball dirX dirY width (x, y)) =
   let move = ballSpeed * delta
-      fX =
-        case dirX of
-          Right -> (+)
-          Left -> (-)
-      (dY, y') = edgeDetectY width $ stepBallY move dirY y
-      (dX, x') = edgeDetectX rectangles y width $ (dirX, fX x move)
-  in Ball dX dY width (x', y')
+      yCols = edgeDetectY x y width
+      dY = case yCols of
+        Nothing -> dirY
+        Just _ -> flipDirectionY dirY
+      xCols = edgeDetectX rectangles x y width
+      dX =
+        case xCols of
+          Nothing -> dirX
+          Just _ -> flipDirectionX dirX
+  in Ball dX dY width (updatePositionX dX x move, updatePositionY dY y move)
 
-stepBallY :: Float -> DirectionY -> Float -> (DirectionY, Float)
-stepBallY move dirY y =
-  let fY =
-        case dirY of
-          Up -> (+)
-          Down -> (-)
-  in (dirY, fY y move)
+updatePositionX :: Num a => DirectionX -> a -> a -> a
+updatePositionX dirX =
+  case dirX of
+    Right -> (+)
+    Left -> (-)
 
-edgeDetectY :: Float -> (DirectionY, Float) -> (DirectionY, Float)
-edgeDetectY width (dY, y) =
+updatePositionY :: Num a => DirectionY -> a -> a -> a
+updatePositionY dirY =
+  case dirY of
+    Up -> (+)
+    Down -> (-)
+
+edgeDetectY :: Float -> Float -> Float -> Maybe Collision
+edgeDetectY x y width =
   if abs (y) + width >= (gameHeight / 2)
-    then (flipDirectionY dY, y)
-    else (dY, y)
+    then Just WallCollision
+    else Nothing
 
 flipDirectionY :: DirectionY -> DirectionY
 flipDirectionY Up = Down
 flipDirectionY Down = Up
 
-edgeDetectX :: [Rectangle]
-            -> Float
-            -> Float
-            -> (DirectionX, Float)
-            -> (DirectionX, Float)
-edgeDetectX bats y width (dX, x) =
+data Collision = BatCollision | WallCollision 
+
+edgeDetectX :: [Rectangle] -> Float -> Float -> Float -> Maybe Collision
+edgeDetectX bats x y width =
   let hits = any (intersect (x, y, width)) bats
-  in if hits || abs (x) + width >= (gameWidth / 2)
-       then (flipDirectionX dX, x)
-       else (dX, x)
+  in if hits
+       then Just BatCollision
+       else if abs (x) + width >= (gameWidth / 2)
+              then Just WallCollision
+              else Nothing
+       
 
 flipDirectionX :: DirectionX -> DirectionX
 flipDirectionX Left = Right
