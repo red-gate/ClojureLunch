@@ -29,6 +29,19 @@ data DirectionY
   | Down
   deriving (Show, Eq)
 
+class Direction a where
+  positive :: a
+  negative :: a
+  
+instance Direction DirectionX where
+  positive = Right
+  negative = Left
+
+instance Direction DirectionY where
+  positive = Up
+  negative = Down
+  
+
 data Bat =
   Bat (Maybe DirectionY)
       Float
@@ -83,35 +96,24 @@ stepBall delta rectangles (Ball dirX dirY width (x, y)) =
       yCols = edgeDetectY x y width
       dY = case yCols of
         Nothing -> dirY
-        Just _ -> flipDirectionY dirY
+        Just _ -> flipDirection dirY
       xCols = edgeDetectX rectangles x y width
       dX =
         case xCols of
           Nothing -> dirX
-          Just _ -> flipDirectionX dirX
-  in Ball dX dY width (updatePositionX dX x move, updatePositionY dY y move)
+          Just _ -> flipDirection dirX
+  in Ball dX dY width (updatePosition dX x move, updatePosition dY y move)
 
-updatePositionX :: Num a => DirectionX -> a -> a -> a
-updatePositionX dirX =
-  case dirX of
-    Right -> (+)
-    Left -> (-)
 
-updatePositionY :: Num a => DirectionY -> a -> a -> a
-updatePositionY dirY =
-  case dirY of
-    Up -> (+)
-    Down -> (-)
-
+updatePosition :: (Num a,Eq b, Direction b) => b -> a -> a -> a
+updatePosition dir | dir == positive = (+)
+                   | dir == negative = (-)
+                    
 edgeDetectY :: Float -> Float -> Float -> Maybe Collision
 edgeDetectY x y width =
   if abs (y) + width >= (gameHeight / 2)
     then Just WallCollision
     else Nothing
-
-flipDirectionY :: DirectionY -> DirectionY
-flipDirectionY Up = Down
-flipDirectionY Down = Up
 
 data Collision = BatCollision | WallCollision 
 
@@ -125,10 +127,11 @@ edgeDetectX bats x y width =
               else Nothing
        
 
-flipDirectionX :: DirectionX -> DirectionX
-flipDirectionX Left = Right
-flipDirectionX Right = Left
-
+flipDirection :: (Eq a, Direction a) => a -> a
+flipDirection d | d == positive = negative
+                | d == negative = positive
+                | otherwise = d
+  
 type Radius = Float
 
 type X = Float
