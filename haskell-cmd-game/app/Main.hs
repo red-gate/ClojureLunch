@@ -41,31 +41,40 @@ instance Direction DirectionY where
   positive = Up
   negative = Down
   
-
 data Bat =
   Bat (Maybe DirectionY)
-      Float
+      Height
   deriving (Show)
+
+type X = Float
+type Y = Float
+type Coords = (X, Y)
+type Radius = Float
+type Width = Float
+type Height = Float
+type Circle = (X, Y, Radius)
+type Rectangle = (X, Y, Width, Height)
+type Score = Int
 
 data Ball =
   Ball DirectionX
        DirectionY
-       Float
-       (Float, Float)
+       Radius
+       Coords
   deriving (Show)
 
 data World = MyWorld
   { ball :: Ball
   , p1 :: Bat
   , p2 :: Bat
-  , score :: (Int, Int)
+  , score :: (Score, Score)
   } deriving (Show)
 
 initialBat :: Bat
 initialBat = Bat Nothing 0
 
 initialBall :: Ball
-initialBall = Ball Right Down 60 (-150, 20)
+initialBall = Ball Right Down 10 (-150, 20)
 
 initialWorld =
   MyWorld
@@ -75,29 +84,40 @@ initialWorld =
   , score = (0,0)
   }
 
-batRectangle :: Float -> Float -> Rectangle
+batRectangle :: X -> Y -> Rectangle
 batRectangle x y = (x, y, batWidth, batHeight)
 
-step :: Float -> World -> World
+type Delta = Float
+
+step :: Delta -> World -> World
 step d (MyWorld b p1@(Bat _ p1y) p2@(Bat _ p2y) score) =
   let batTransDist = (gameWidth - batWidth) / 2
-  in MyWorld
-       (stepBall
-          d
-          [batRectangle (-batTransDist) p1y, batRectangle batTransDist p2y]
-          b)
-       (stepPlayer d p1)
-       (stepPlayer d p2)
-       score
+      rectangles =
+        [batRectangle (-batTransDist) p1y, batRectangle batTransDist p2y]
+      cols = edgeDetect rectangles b
+  in case cols of
+       (Just (GoalCollision p), _) -> scorePoint p score
+       cs -> MyWorld (stepBall d cs b) (stepPlayer d p1) (stepPlayer d p2) score
 
-stepBall :: Float -> [Rectangle] -> Ball -> Ball
-stepBall delta rectangles (Ball dirX dirY width (x, y)) =
+data Player = P1 | P2
+scorePoint :: Player -> (Score, Score) -> World
+scorePoint p (one, two) =
+  let newScore =
+        case p of
+          P1 -> (one + 1, two)
+          P2 -> (one, two + 1)
+  in initialWorld
+     { score = newScore
+     }
+
+stepBall :: Delta -> Collisions -> Ball -> Ball
+stepBall delta (xCols, yCols) (Ball dirX dirY width (x, y)) =
   let move = ballSpeed * delta
-      yCols = edgeDetectY x y width
-      dY = case yCols of
-        Nothing -> dirY
-        Just _ -> flipDirection dirY
-      xCols = edgeDetectX rectangles x y width
+      
+      dY =
+        case yCols of
+          Nothing -> dirY
+          Just _ -> flipDirection dirY
       dX =
         case xCols of
           Nothing -> dirX
@@ -109,42 +129,34 @@ updatePosition :: (Num a,Eq b, Direction b) => b -> a -> a -> a
 updatePosition dir | dir == positive = (+)
                    | dir == negative = (-)
                     
-edgeDetectY :: Float -> Float -> Float -> Maybe Collision
-edgeDetectY x y width =
-  if abs (y) + width >= (gameHeight / 2)
-    then Just WallCollision
-    else Nothing
+data Collision = BatCollision | WallCollision | GoalCollision Player
+type Collisions = (Maybe Collision, Maybe Collision)
 
-data Collision = BatCollision | WallCollision 
-
-edgeDetectX :: [Rectangle] -> Float -> Float -> Float -> Maybe Collision
-edgeDetectX bats x y width =
+edgeDetect :: [Rectangle] -> Ball -> Collisions 
+edgeDetect bats (Ball _ _ width (x, y)) =
   let hits = any (intersect (x, y, width)) bats
-  in if hits
-       then Just BatCollision
-       else if abs (x) + width >= (gameWidth / 2)
-              then Just WallCollision
-              else Nothing
-       
+  in ( if hits
+         then Just BatCollision
+         else hitSide
+                x
+                gameWidth
+                (GoalCollision
+                   (if x > 0
+                      then P1
+                      else P2))
+     , hitSide y gameHeight WallCollision)
+  where
+    hitSide p size side =
+      if abs (p) + width >= (size / 2)
+        then Just side
+        else Nothing
 
 flipDirection :: (Eq a, Direction a) => a -> a
 flipDirection d | d == positive = negative
                 | d == negative = positive
                 | otherwise = d
   
-type Radius = Float
 
-type X = Float
-
-type Y = Float
-
-type Width = Float
-
-type Height = Float
-
-type Circle = (X, Y, Radius)
-
-type Rectangle = (X, Y, Width, Height)
 
 intersect :: Circle -> Rectangle -> Bool
 intersect (cX, cY, cR) (rX, rY, rW, rH)
@@ -174,7 +186,7 @@ worldToPicture (MyWorld b p1 p2 score) =
     tP1 = translate (-batTransDist) 0
     tP2 = translate batTransDist 0
 
-drawScore :: (Int,Int) -> Picture
+drawScore :: (Score, Score) -> Picture
 drawScore (i, j) =
   let f x = translate x 0 . text . show
       scoreWidth = 50
@@ -220,8 +232,10 @@ input (G.EventKey (G.Char key) state _ _) w@(MyWorld _ p1 p2 _) =
     _ -> w
 input _ w = w
 
-ballSpeed :: Float
-ballSpeed = 50
+type Speed = Float
+
+ballSpeed :: Speed
+ballSpeed = 100
 
 
 batWidth
