@@ -7,14 +7,16 @@ import System.IO
 import Graphics.Gloss
 import qualified Graphics.Gloss.Interface.Pure.Game as G
 import Data.Monoid ((<>))
+import System.Random
 
 main :: IO ()
-main =
+main = do
+  generator <- getStdGen
   play
     (InWindow "Nice Window" (gameWidth, gameHeight) (10, 10))
     white
     30
-    initialWorld
+    (initialWorld generator)
     worldToPicture
     input
     step
@@ -29,10 +31,10 @@ data DirectionY
   | Down
   deriving (Show, Eq)
 
-class Direction a where
+class Direction a  where
   positive :: a
   negative :: a
-  
+
 instance Direction DirectionX where
   positive = Right
   negative = Left
@@ -40,20 +42,28 @@ instance Direction DirectionX where
 instance Direction DirectionY where
   positive = Up
   negative = Down
-  
+
 data Bat =
   Bat (Maybe DirectionY)
       Height
   deriving (Show)
 
 type X = Float
+
 type Y = Float
+
 type Coords = (X, Y)
+
 type Radius = Float
+
 type Width = Float
+
 type Height = Float
+
 type Circle = (X, Y, Radius)
+
 type Rectangle = (X, Y, Width, Height)
+
 type Score = Int
 
 data Ball =
@@ -68,21 +78,26 @@ data World = MyWorld
   , p1 :: Bat
   , p2 :: Bat
   , score :: (Score, Score)
+  , generator :: StdGen
   } deriving (Show)
 
 initialBat :: Bat
 initialBat = Bat Nothing 0
 
-initialBall :: Ball
-initialBall = Ball Right Down 10 (-150, 20)
+initialBall :: X -> Y -> Ball
+initialBall x y = Ball Right Down 10 (x, y)
 
-initialWorld =
-  MyWorld
-  { ball = initialBall
-  , p1 = initialBat
-  , p2 = initialBat
-  , score = (0,0)
-  }
+initialWorld :: StdGen -> World
+initialWorld gen =
+  let (x, gen1) = randomR (-100, 100) gen
+      (y, gen2) = randomR (-100, 100) gen1
+  in MyWorld
+     { ball = initialBall x y
+     , p1 = initialBat
+     , p2 = initialBat
+     , score = (0, 0)
+     , generator = gen2
+     }
 
 batRectangle :: X -> Y -> Rectangle
 batRectangle x y = (x, y, batWidth, batHeight)
@@ -90,30 +105,33 @@ batRectangle x y = (x, y, batWidth, batHeight)
 type Delta = Float
 
 step :: Delta -> World -> World
-step d (MyWorld b p1@(Bat _ p1y) p2@(Bat _ p2y) score) =
+step d (MyWorld b p1@(Bat _ p1y) p2@(Bat _ p2y) score gen) =
   let batTransDist = (gameWidth - batWidth) / 2
       rectangles =
         [batRectangle (-batTransDist) p1y, batRectangle batTransDist p2y]
       cols = edgeDetect rectangles b
   in case cols of
-       (Just (GoalCollision p), _) -> scorePoint p score
-       cs -> MyWorld (stepBall d cs b) (stepPlayer d p1) (stepPlayer d p2) score
+       (Just (GoalCollision p), _) -> scorePoint p score gen
+       cs ->
+         MyWorld (stepBall d cs b) (stepPlayer d p1) (stepPlayer d p2) score gen
 
-data Player = P1 | P2
-scorePoint :: Player -> (Score, Score) -> World
-scorePoint p (one, two) =
+data Player
+  = P1
+  | P2
+
+scorePoint :: Player -> (Score, Score) -> StdGen -> World
+scorePoint p (one, two) gen =
   let newScore =
         case p of
           P1 -> (one + 1, two)
           P2 -> (one, two + 1)
-  in initialWorld
+  in (initialWorld gen)
      { score = newScore
      }
 
 stepBall :: Delta -> Collisions -> Ball -> Ball
 stepBall delta (xCols, yCols) (Ball dirX dirY width (x, y)) =
   let move = ballSpeed * delta
-      
       dY =
         case yCols of
           Nothing -> dirY
@@ -124,15 +142,21 @@ stepBall delta (xCols, yCols) (Ball dirX dirY width (x, y)) =
           Just _ -> flipDirection dirX
   in Ball dX dY width (updatePosition dX x move, updatePosition dY y move)
 
+updatePosition
+  :: (Num a, Eq b, Direction b)
+  => b -> a -> a -> a
+updatePosition dir
+  | dir == positive = (+)
+  | dir == negative = (-)
 
-updatePosition :: (Num a,Eq b, Direction b) => b -> a -> a -> a
-updatePosition dir | dir == positive = (+)
-                   | dir == negative = (-)
-                    
-data Collision = BatCollision | WallCollision | GoalCollision Player
+data Collision
+  = BatCollision
+  | WallCollision
+  | GoalCollision Player
+
 type Collisions = (Maybe Collision, Maybe Collision)
 
-edgeDetect :: [Rectangle] -> Ball -> Collisions 
+edgeDetect :: [Rectangle] -> Ball -> Collisions
 edgeDetect bats (Ball _ _ width (x, y)) =
   let hits = any (intersect (x, y, width)) bats
   in ( if hits
@@ -151,12 +175,13 @@ edgeDetect bats (Ball _ _ width (x, y)) =
         then Just side
         else Nothing
 
-flipDirection :: (Eq a, Direction a) => a -> a
-flipDirection d | d == positive = negative
-                | d == negative = positive
-                | otherwise = d
-  
-
+flipDirection
+  :: (Eq a, Direction a)
+  => a -> a
+flipDirection d
+  | d == positive = negative
+  | d == negative = positive
+  | otherwise = d
 
 intersect :: Circle -> Rectangle -> Bool
 intersect (cX, cY, cR) (rX, rY, rW, rH)
@@ -179,7 +204,7 @@ stepPlayer d (Bat c@(Just dir) p) =
   in Bat c (f p (d * ballSpeed))
 
 worldToPicture :: World -> Picture
-worldToPicture (MyWorld b p1 p2 score) =
+worldToPicture (MyWorld b p1 p2 score _) =
   drawBall b <> (tP1 $ drawBat p1) <> (tP2 $ drawBat p2) <> (drawScore score)
   where
     batTransDist = (gameWidth - batWidth) / 2
@@ -192,7 +217,7 @@ drawScore (i, j) =
       scoreWidth = 50
       colonWidth = 20
       w = scoreWidth + colonWidth
-  in translate (colonWidth /2) 0 $ f (-w) i <> text  ":" <> f colonWidth j
+  in translate (colonWidth / 2) 0 $ f (-w) i <> text ":" <> f colonWidth j
 
 drawBall :: Ball -> Picture
 drawBall (Ball _ _ width (x, y)) = translate x y (circleSolid width)
@@ -211,7 +236,7 @@ toggle G.Up dir (Bat (Just oldDir) p) =
 toggle G.Up _ b = b
 
 input :: G.Event -> World -> World
-input (G.EventKey (G.Char key) state _ _) w@(MyWorld _ p1 p2 _) =
+input (G.EventKey (G.Char key) state _ _) w@(MyWorld _ p1 p2 _ _) =
   case key of
     'a' ->
       w
@@ -236,7 +261,6 @@ type Speed = Float
 
 ballSpeed :: Speed
 ballSpeed = 100
-
 
 batWidth
   :: Num a
