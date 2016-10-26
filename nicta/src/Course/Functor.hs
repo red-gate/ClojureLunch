@@ -14,10 +14,10 @@ import qualified Prelude as P(fmap)
 -- are not checked by the compiler. These laws are given as:
 --
 -- * The law of identity
---   `∀x. (id <$> x) ≅ x`
+--   `x. (id <$> x) x`
 --
 -- * The law of composition
---   `∀f g x.(f . g <$> x) ≅ (f <$> (g <$> x))`
+--   `f g x.(f . g <$> x) (f <$> (g <$> x))`
 class Functor f where
   -- Pronounced, eff-map.
   (<$>) ::
@@ -41,8 +41,7 @@ instance Functor Id where
     (a -> b)
     -> Id a
     -> Id b
-  (<$>) =
-    error "todo: Course.Functor (<$>)#instance Id"
+  (<$>) = mapId
 
 -- | Maps a function on the List functor.
 --
@@ -56,8 +55,9 @@ instance Functor List where
     (a -> b)
     -> List a
     -> List b
-  (<$>) =
-    error "todo: Course.Functor (<$>)#instance List"
+  (<$>) _ (Nil) = Nil
+  (<$>) f (a:.as) = f a :. (f <$> as)
+    
 
 -- | Maps a function on the Optional functor.
 --
@@ -71,8 +71,8 @@ instance Functor Optional where
     (a -> b)
     -> Optional a
     -> Optional b
-  (<$>) =
-    error "todo: Course.Functor (<$>)#instance Optional"
+  (<$>) = mapOptional 
+
 
 -- | Maps a function on the reader ((->) t) functor.
 --
@@ -81,10 +81,9 @@ instance Functor Optional where
 instance Functor ((->) t) where
   (<$>) ::
     (a -> b)
-    -> ((->) t a)
-    -> ((->) t b)
-  (<$>) =
-    error "todo: Course.Functor (<$>)#((->) t)"
+    -> (t -> a)
+    -> (t -> b)
+  (<$>) = (.)    
 
 -- | Anonymous map. Maps a constant value on a functor.
 --
@@ -99,8 +98,7 @@ instance Functor ((->) t) where
   a
   -> f b
   -> f a
-(<$) =
-  error "todo: Course.Functor#(<$)"
+(<$) x fb = (\_ -> x) <$> fb 
 
 -- | Anonymous map producing unit value.
 --
@@ -119,8 +117,7 @@ void ::
   Functor f =>
   f a
   -> f ()
-void =
-  error "todo: Course.Functor#void"
+void = (<$) ()
 
 -----------------------
 -- SUPPORT LIBRARIES --
