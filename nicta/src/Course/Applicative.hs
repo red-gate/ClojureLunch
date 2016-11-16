@@ -29,13 +29,13 @@ import qualified Prelude as P(fmap, return, (>>=))
 -- These laws are not checked by the compiler. These laws are given as:
 --
 -- * The law of associative composition
---   `∀a b c. ((.) <$> a <*> b <*> c) ≅ (a <*> (b <*> c))`
+--   `a b c. ((.) <$> a <*> b <*> c) = (a <*> (b <*> c))`
 --
 -- * The law of left identity
---   `∀x. pure id <*> x ≅ x`
+--   `x. pure id <*> x  x`
 --
 -- * The law of right identity
---   `∀x. x <*> pure id ≅ x`
+--   x. x <*> pure id  x`
 class Functor f => Applicative f where
   pure ::
     a -> f a
@@ -61,8 +61,7 @@ infixl 4 <*>
   (a -> b)
   -> f a
   -> f b
-(<$>) =
-  error "todo: Course.Applicative#(<$>)"
+(<$>) aToB = (<*>) (pure aToB)
 
 -- | Insert into Id.
 --
@@ -74,14 +73,12 @@ instance Applicative Id where
   pure ::
     a
     -> Id a
-  pure =
-    error "todo: Course.Applicative pure#instance Id"
-  (<*>) :: 
+  pure = Id
+  (<*>) ::
     Id (a -> b)
     -> Id a
     -> Id b
-  (<*>) =
-    error "todo: Course.Applicative (<*>)#instance Id"
+  (<*>) (Id f) (Id x) = Id (f x)
 
 -- | Insert into a List.
 --
@@ -90,17 +87,9 @@ instance Applicative Id where
 -- >>> (+1) :. (*2) :. Nil <*> 1 :. 2 :. 3 :. Nil
 -- [2,3,4,2,4,6]
 instance Applicative List where
-  pure ::
-    a
-    -> List a
-  pure =
-    error "todo: Course.Applicative pure#instance List"
-  (<*>) ::
-    List (a -> b)
-    -> List a
-    -> List b
-  (<*>) =
-    error "todo: Course.Apply (<*>)#instance List"
+  pure = (:. Nil)
+  (<*>) fs as = foldRight g Nil fs
+    where g f xs = xs ++ map f as
 
 -- | Insert into an Optional.
 --
@@ -148,13 +137,13 @@ instance Applicative Optional where
 instance Applicative ((->) t) where
   pure ::
     a
-    -> ((->) t a)
+    -> (->) t a
   pure =
     error "todo: Course.Applicative pure#((->) t)"
   (<*>) ::
-    ((->) t (a -> b))
-    -> ((->) t a)
-    -> ((->) t b)
+    (->) t (a -> b)
+    -> (->) t a
+    -> (->) t b
   (<*>) =
     error "todo: Course.Apply (<*>)#instance ((->) t)"
 
