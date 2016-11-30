@@ -6,11 +6,11 @@
 module Course.Monad(
   Monad(..)
 , join
-, (>>=)  
+, (>>=)
 , (<=<)
 ) where
 
-import Course.Applicative hiding ((<*>))
+import Course.Applicative -- hiding ((<*>))
 import Course.Core
 import Course.Functor
 import Course.Id
@@ -63,15 +63,15 @@ infixr 1 =<<
 --
 -- >>> ((*) <*> (+2)) 3
 -- 15
-(<*>) ::
+{-(<*>) ::
   Monad f =>
   f (a -> b)
   -> f a
   -> f b
-(<*>) =
-  error "todo: Course.Monad#(<*>)"
+(<*>) fAtoB fA = (\aToB -> aToB <$> fA) =<< fAtoB
 
 infixl 4 <*>
+-}
 
 -- | Binds a function on the Id monad.
 --
@@ -82,8 +82,7 @@ instance Monad Id where
     (a -> Id b)
     -> Id a
     -> Id b
-  (=<<) =
-    error "todo: Course.Monad (=<<)#instance Id"
+  (=<<) f (Id x) = f x
 
 -- | Binds a function on a List.
 --
@@ -94,8 +93,7 @@ instance Monad List where
     (a -> List b)
     -> List a
     -> List b
-  (=<<) =
-    error "todo: Course.Monad (=<<)#instance List"
+  (=<<) aToListB listA = flatten (aToListB <$> listA)
 
 -- | Binds a function on an Optional.
 --
@@ -106,8 +104,8 @@ instance Monad Optional where
     (a -> Optional b)
     -> Optional a
     -> Optional b
-  (=<<) =
-    error "todo: Course.Monad (=<<)#instance Optional"
+  (=<<) = bindOptional
+
 
 -- | Binds a function on the reader ((->) t).
 --
@@ -118,8 +116,9 @@ instance Monad ((->) t) where
     (a -> ((->) t b))
     -> ((->) t a)
     -> ((->) t b)
-  (=<<) =
-    error "todo: Course.Monad (=<<)#instance ((->) t)"
+  (=<<) aTotTob tToa =
+     \t -> aTotTob (tToa t) t
+
 
 -- | Flattens a combined structure to a single structure.
 --
@@ -138,8 +137,7 @@ join ::
   Monad f =>
   f (f a)
   -> f a
-join =
-  error "todo: Course.Monad#join"
+join m = id =<< m
 
 -- | Implement a flipped version of @(=<<)@, however, use only
 -- @join@ and @(<$>)@.
@@ -152,8 +150,7 @@ join =
   f a
   -> (a -> f b)
   -> f b
-(>>=) =
-  error "todo: Course.Monad#(>>=)"
+(>>=) m f = join $ f <$> m
 
 infixl 1 >>=
 
@@ -168,8 +165,7 @@ infixl 1 >>=
   -> (a -> f b)
   -> a
   -> f c
-(<=<) =
-  error "todo: Course.Monad#(<=<)"
+(<=<) bToFC aToFB a = (bToFC =<< (aToFB a))
 
 infixr 1 <=<
 
