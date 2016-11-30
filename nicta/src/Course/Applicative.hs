@@ -19,7 +19,7 @@ module Course.Applicative(
 ) where
 
 import Course.Core
-import Course.Functor hiding ((<$>))
+import Course.Functor
 import Course.Id
 import Course.List
 import Course.Optional
@@ -45,23 +45,6 @@ class Functor f => Applicative f where
     -> f b
 
 infixl 4 <*>
-
--- | Witness that all things with (<*>) and pure also have (<$>).
---
--- >>> (+1) <$> (Id 2)
--- Id 3
---
--- >>> (+1) <$> Nil
--- []
---
--- >>> (+1) <$> (1 :. 2 :. 3 :. Nil)
--- [2,3,4]
-(<$>) ::
-  Applicative f =>
-  (a -> b)
-  -> f a
-  -> f b
-(<$>) aToB = (<*>) (pure aToB)
 
 -- | Insert into Id.
 --
@@ -104,16 +87,9 @@ instance Applicative List where
 -- >>> Full (+8) <*> Empty
 -- Empty
 instance Applicative Optional where
-  pure ::
-    a
-    -> Optional a
   pure = Full
-  (<*>) ::
-    Optional (a -> b)
-    -> Optional a
-    -> Optional b
-  (<*>) Empty = const Empty
-  (<*>) (Full f) x = (f <$> x)
+  (<*>) Empty x = const Empty x
+  (<*>) (Full f) x  = mapOptional f  x
 
 -- | Insert into a constant function.
 --
@@ -307,8 +283,8 @@ sequence ::
   Applicative f =>
   List (f a)
   -> f (List a)
-sequence =
-  error "todo: Course.Applicative#sequence"
+sequence Nil = pure Nil
+sequence (x :. xs) = ((:.) <$> x ) <*> sequence xs
 
 -- | Replicate an effect a given number of times.
 --
@@ -331,8 +307,7 @@ replicateA ::
   Int
   -> f a
   -> f (List a)
-replicateA =
-  error "todo: Course.Applicative#replicateA"
+replicateA i = sequence . replicate i
 
 -- | Filter a list with a predicate that produces an effect.
 --
@@ -354,13 +329,17 @@ replicateA =
 -- >>> filtering (const $ True :. True :.  Nil) (1 :. 2 :. 3 :. Nil)
 -- [[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3]]
 --
+
+
 filtering ::
   Applicative f =>
   (a -> f Bool)
   -> List a
   -> f (List a)
-filtering =
-  error "todo: Course.Applicative#filtering"
+filtering _ Nil = pure Nil
+filtering g (y :. ys) = ((ff y) <$> (g y)) <*> filtering g ys
+  where ff _ False x' = x'
+        ff x True x' = x :. x'
 
 -----------------------
 -- SUPPORT LIBRARIES --
