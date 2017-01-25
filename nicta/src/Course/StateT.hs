@@ -227,26 +227,40 @@ data OptionalT f a =
 -- >>> runOptionalT $ (+1) <$> OptionalT (Full 1 :. Empty :. Nil)
 -- [Full 2,Empty]
 instance Functor f => Functor (OptionalT f) where
-  (<$>) =
-    error "todo: Course.StateT (<$>)#instance (OptionalT f)"
+  (<$>) aToB (OptionalT run) = OptionalT ((aToB <$>)  <$> run)
 
 -- | Implement the `Applicative` instance for `OptionalT f` given a Applicative f.
 --
 -- >>> runOptionalT $ OptionalT (Full (+1) :. Full (+2) :. Nil) <*> OptionalT (Full 1 :. Empty :. Nil)
 -- [Full 2,Empty,Full 3,Empty]
 instance Applicative f => Applicative (OptionalT f) where
-  pure =
-    error "todo: Course.StateT pure#instance (OptionalT f)"
-  (<*>) =
-    error "todo: Course.StateT (<*>)#instance (OptionalT f)"
+  pure x = OptionalT (pure (Full x))
+  (<*>) (OptionalT  x) (OptionalT f) = OptionalT ((\x2 -> (\y -> case x2 of
+    Full oy -> oy <$> y
+    Empty -> Empty )) <$> x <*> f)
 
+-- x :: f (Optional (a -> b)), f :: f (Optional a)
+-- x <*> :: f ? ->  f ( Optional (a -> b) ?)
+
+--
 -- | Implement the `Monad` instance for `OptionalT f` given a Monad f.
 --
 -- >>> runOptionalT $ (\a -> OptionalT (Full (a+1) :. Full (a+2) :. Nil)) =<< OptionalT (Full 1 :. Empty :. Nil)
 -- [Full 2,Full 3,Empty]
 instance Monad f => Monad (OptionalT f) where
-  (=<<) =
-    error "todo: Course.StateT (=<<)#instance (OptionalT f)"
+  (=<<) x (OptionalT g) =
+    let x' a = let OptionalT r = x a in r
+        bindFOpt :: (a -> f (Optional b)) -> f (Optional a) -> f (Optional b)
+        bindFOpt fAtoB fA = do
+            y <- fA
+            case y of
+                Full a -> fAtoB a
+                Empty -> pure Empty
+    in
+    OptionalT (
+        bindFOpt x' g
+     )
+
 
 -- | A `Logger` is a pair of a list of log values (`[l]`) and an arbitrary value (`a`).
 data Logger l a =
