@@ -272,8 +272,8 @@ data Logger l a =
 -- >>> (+3) <$> Logger (listh [1,2]) 3
 -- Logger [1,2] 6
 instance Functor (Logger l) where
-  (<$>) =
-    error "todo: Course.StateT (<$>)#instance (Logger l)"
+  (<$>) fn (Logger l v) =
+   Logger l (fn v)
 
 -- | Implement the `Applicative` instance for `Logger`.
 --
@@ -283,10 +283,8 @@ instance Functor (Logger l) where
 -- >>> Logger (listh [1,2]) (+7) <*> Logger (listh [3,4]) 3
 -- Logger [1,2,3,4] 10
 instance Applicative (Logger l) where
-  pure =
-    error "todo: Course.StateT pure#instance (Logger l)"
-  (<*>) =
-    error "todo: Course.StateT (<*>)#instance (Logger l)"
+  pure = Logger Nil
+  (<*>) (Logger ls1 f) (Logger ls2 v) = Logger (ls1 ++ ls2) (f v)
 
 -- | Implement the `Monad` instance for `Logger`.
 -- The `bind` implementation must append log values to maintain associativity.
@@ -294,8 +292,8 @@ instance Applicative (Logger l) where
 -- >>> (\a -> Logger (listh [4,5]) (a+3)) =<< Logger (listh [1,2]) 3
 -- Logger [1,2,4,5] 6
 instance Monad (Logger l) where
-  (=<<) =
-    error "todo: Course.StateT (=<<)#instance (Logger l)"
+  (=<<) aToLoggerB (Logger ls a) = (Logger ls id) <*> aToLoggerB a
+
 
 -- | A utility function for producing a `Logger` with one log value.
 --
@@ -305,8 +303,7 @@ log1 ::
   l
   -> a
   -> Logger l a
-log1 =
-  error "todo: Course.StateT#log1"
+log1 l = Logger (listh [l])
 
 -- | Remove all duplicate integers from a list. Produce a log as you go.
 -- If there is an element above 100, then abort the entire computation and produce no result.
@@ -326,5 +323,22 @@ distinctG ::
   (Integral a, Show a) =>
   List a
   -> Logger Chars (Optional (List a))
-distinctG =
-  error "todo: Course.StateT#distinctG"
+distinctG xs = runOptionalT $ evalT (filtering f xs) S.empty
+
+f :: (Integral a, Show a) => a -> StateT (S.Set a) (OptionalT (Logger Chars)) Bool
+f x = do
+    s <- getT
+    if S.member x s
+    then return False
+    else
+        if x > 100
+        then StateT (const $ OptionalT (log1 "aborting > 100: " (Empty) ))
+        else
+            if mod x 2==0
+            then do
+                StateT (\st -> OptionalT (log1 ( "even number: " ++  (show' x)) (Full ((),st)) ))
+                putT (S.insert x s)
+                return True
+            else do
+                putT (S.insert x s)
+                return True
