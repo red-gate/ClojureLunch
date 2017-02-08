@@ -327,18 +327,12 @@ distinctG xs = runOptionalT $ evalT (filtering f xs) S.empty
 
 f :: (Integral a, Show a) => a -> StateT (S.Set a) (OptionalT (Logger Chars)) Bool
 f x = do
-    s <- getT
-    if S.member x s
-    then return False
-    else
+        s <- getT
         if x > 100
         then StateT (const $ OptionalT (log1 "aborting > 100: " (Empty) ))
-        else
+        else do
             if mod x 2==0
-            then do
-                StateT (\st -> OptionalT (log1 ( "even number: " ++  (show' x)) (Full ((),st)) ))
-                putT (S.insert x s)
-                return True
-            else do
-                putT (S.insert x s)
-                return True
+            then StateT (\st -> OptionalT (log1 ( "even number: " ++  (show' x)) (Full ((),st)) ))
+            else return ()
+            putT (S.insert x s)
+            return (not $ S.member x s)

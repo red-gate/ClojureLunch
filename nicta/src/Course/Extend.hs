@@ -33,8 +33,7 @@ instance Extend Id where
     (Id a -> b)
     -> Id a
     -> Id b
-  (<<=) =
-    error "todo: Course.Extend (<<=)#instance Id"
+  (<<=) f = Id . f
 
 -- | Implement the @Extend@ instance for @List@.
 --
@@ -51,8 +50,9 @@ instance Extend List where
     (List a -> b)
     -> List a
     -> List b
-  (<<=) =
-    error "todo: Course.Extend (<<=)#instance List"
+  (<<=) _ Nil = Nil
+  (<<=) f x@(_:.hs) = f x :. ((<<=) f hs)
+
 
 -- | Implement the @Extend@ instance for @Optional@.
 --
