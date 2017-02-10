@@ -7,7 +7,7 @@ import Data.IORef(IORef, newIORef, readIORef)
 import Data.Foldable(Foldable, mapM_)
 import Control.Applicative(Applicative, pure)
 import Control.Monad.Trans(MonadIO(..), MonadTrans(..))
-import Control.Monad(liftM)
+import Control.Monad(liftM, ap)
 import Control.Concurrent(forkIO)
 import Control.Exception(finally, try, catch, Exception)
 import Control.Monad(forever)
@@ -50,9 +50,9 @@ instance Functor f => Functor (Loop v s f) where
   fmap f (Loop k) =
     Loop (\env -> fmap (\(a, t) -> (f a, t)) . k env)
 
-instance Applicative f => Applicative (Loop v s f) where
-  pure = undefined
-  (<*>) = undefined
+instance (Monad f, Functor f) => Applicative (Loop v s f) where
+   pure = return
+   (<*>) = ap
 
 instance Monad f => Monad (Loop v s f) where
   return a =

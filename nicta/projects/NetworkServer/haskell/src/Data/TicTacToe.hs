@@ -177,7 +177,7 @@ instance Arbitrary Board where
   arbitrary = do
     p <- arbitrary
     ps <- arbitrary
-    return $ L.foldr propell (start p) ps
+    return $ L.foldr propell (start p) (ps :: [Position])
 
 propell :: Position -> Board -> Board
 propell p b =
