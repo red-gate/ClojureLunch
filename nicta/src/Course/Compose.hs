@@ -23,8 +23,20 @@ instance (Applicative f, Applicative g) =>
 -- Implement the pure function for an Applicative instance for Compose
   pure = (Compose . pure . pure)
 -- Implement the (<*>) function for an Applicative instance for Compose
-  (<*>) (Compose f) (Compose x) = Compose $ (f <*>) <$> x
+  (<*>) (Compose f) (Compose x) = Compose $ ((<*>) <$> f) <*> x
 
+--  (=<<) ::
+--    (a -> f b)
+--    -> f a
+--    -> f b
+--  (=<<) ::
+--    (a -> g b)
+--    -> g a
+--    -> g b
+-- (=<<) ::
+--  (a -> f(g b))
+--  -> f (g a)
+--  -> f (g b)
 instance (Monad f, Monad g) =>
   Monad (Compose f g) where
 -- Implement the (=<<) function for a Monad instance for Compose
