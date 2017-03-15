@@ -1,4 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Course.ListZipper where
@@ -431,8 +430,14 @@ moveRightN ::
   Int
   -> ListZipper a
   -> MaybeListZipper a
-moveRightN =
-  error "todo: Course.ListZipper#moveRightN"
+moveRightN n = moveLeftN (-n)
+
+--  maybeMoveRightN n (IsZ z)
+ -- where maybeMoveRightN _ IsNotZ = IsNotZ
+ --       maybeMoveRightN 0 z = z
+ --       maybeMoveRightN n (IsZ z) = 
+ --         if (n > 0) 
+ --         then maybeMoveRightN (n-1) (moveRight )
 
 -- | Move the focus left the given number of positions. If the value is negative, move right instead.
 -- If the focus cannot be moved, the given number of times, return the value by which it can be moved instead.
@@ -461,8 +466,14 @@ moveLeftN' ::
   Int
   -> ListZipper a
   -> Either Int (ListZipper a)
-moveLeftN' =
-  error "todo: Course.ListZipper#moveLeftN'"
+moveLeftN' n z@(ListZipper l f r)
+  | (==) n 0                = Right $ z
+  | n < 0 && length r >= -n = Right $ moveLeftN n z
+  | n > 0 && length l <= n  = Right $ moveLeftN n z
+  | n < 0                   = Left $ length r
+  | otherwise               = Left $ length l
+  
+  
 
 -- | Move the focus right the given number of positions. If the value is negative, move left instead.
 -- If the focus cannot be moved, the given number of times, return the value by which it can be moved instead.
@@ -485,9 +496,8 @@ moveRightN' ::
   Int
   -> ListZipper a
   -> Either Int (ListZipper a)
-moveRightN' =
-  error "todo: Course.ListZipper#moveRightN'"
-
+moveRightN' n = moveLeftN' (-n)
+  
 -- | Move the focus to the given absolute position in the zipper. Traverse the zipper only to the extent required.
 --
 -- >>> nth 1 (zipper [3,2,1] 4 [5,6,7])
@@ -502,8 +512,9 @@ nth ::
   Int
   -> ListZipper a
   -> MaybeListZipper a
-nth =
-  error "todo: Course.ListZipper#nth"
+nth n z@(ListZipper l f r) = 
+  let c = length l 
+  in moveLeft (n-c) z
 
 -- | Return the absolute position of the current focus in the zipper.
 --
