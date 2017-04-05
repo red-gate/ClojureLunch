@@ -77,8 +77,7 @@ unexpectedCharParser c =
 valueParser ::
   a
   -> Parser a
-valueParser =
-  error "todo: Course.Parser#valueParser"
+valueParser x = P (\i -> Result i x) 
 
 -- | Return a parser that always fails with the given error.
 --
@@ -86,8 +85,8 @@ valueParser =
 -- True
 failed ::
   Parser a
-failed =
-  error "todo: Course.Parser#failed"
+failed = P (\_ -> ErrorResult Failed)
+  
 
 -- | Return a parser that succeeds with a character off the input or fails with an error if the input is empty.
 --
@@ -99,7 +98,9 @@ failed =
 character ::
   Parser Char
 character =
-  error "todo: Course.Parser#character"
+ P (\i -> case i of 
+       Nil -> ErrorResult Failed
+       (h:.t) -> Result t h)
 
 -- | Return a parser that maps any succeeding result with the given function.
 --
@@ -112,8 +113,9 @@ mapParser ::
   (a -> b)
   -> Parser a
   -> Parser b
-mapParser =
-  error "todo: Course.Parser#mapParser"
+mapParser f p = P(\i -> case parse p i of 
+                     ErrorResult x -> ErrorResult x
+                     Result i2 x -> Result i2 (f x))
 
 -- | This is @mapParser@ with the arguments flipped.
 -- It might be more helpful to use this function if you prefer this argument order.
@@ -149,8 +151,9 @@ bindParser ::
   (a -> Parser b)
   -> Parser a
   -> Parser b
-bindParser =
-  error "todo: Course.Parser#bindParser"
+bindParser f p = P(\i -> case parse p i of 
+                     ErrorResult x -> ErrorResult x
+                     Result i2 x -> parse (f x) i2)
 
 -- | This is @bindParser@ with the arguments flipped.
 -- It might be more helpful to use this function if you prefer this argument order.
@@ -179,8 +182,7 @@ flbindParser =
   Parser a
   -> Parser b
   -> Parser b
-(>>>) =
-  error "todo: Course.Parser#(>>>)"
+(>>>) pA pB = bindParser (const pB) pA
 
 -- | Return a parser that tries the first parser for a successful value.
 --
@@ -203,8 +205,9 @@ flbindParser =
   Parser a
   -> Parser a
   -> Parser a
-(|||) =
-  error "todo: Course.Parser#(|||)"
+(|||) p1 p2 = P (\i -> case parse p1 i of 
+                      ErrorResult _ -> parse p2 i
+                      res -> res) 
 
 infixl 3 |||
 
@@ -232,8 +235,8 @@ infixl 3 |||
 list ::
   Parser a
   -> Parser (List a)
-list =
-  error "todo: Course.Parser#list"
+list p = list1 p ||| valueParser Nil
+  
 
 -- | Return a parser that produces at least one value from the given parser then
 -- continues producing a list of values from the given parser (to ultimately produce a non-empty list).
@@ -251,8 +254,7 @@ list =
 list1 ::
   Parser a
   -> Parser (List a)
-list1 =
-  error "todo: Course.Parser#list1"
+list1 p = bindParser (\a -> mapParser (a :.) (list p)) p
 
 -- | Return a parser that produces a character but fails if
 --
