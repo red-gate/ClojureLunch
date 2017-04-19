@@ -508,8 +508,7 @@ smokerParser = (is 'y') ||| (is 'n')
 -- Result >a123-456< ""
 phoneBodyParser ::
   Parser Chars
-phoneBodyParser =
-  error "todo: Course.Parser#phoneBodyParser"
+phoneBodyParser = list (digit ||| is '-' ||| is '.')
 
 -- | Write a parser for Person.phone.
 --
@@ -531,8 +530,11 @@ phoneBodyParser =
 phoneParser ::
   Parser Chars
 phoneParser =
-  error "todo: Course.Parser#phoneParser"
-
+  flbindParser digit 
+     (\x -> flbindParser  phoneBodyParser 
+        (\d -> flbindParser (is '#') 
+           (\_ -> valueParser (x :. d)))) 
+ 
 -- | Write a parser for Person.
 --
 -- /Tip:/ Use @bindParser@,
@@ -580,7 +582,12 @@ phoneParser =
 personParser ::
   Parser Person
 personParser =
-  error "todo: Course.Parser#personParser"
+  flbindParser ageParser 
+     (\x -> flbindParser ((>>>) spaces1 firstNameParser)
+      (\y -> flbindParser  ((>>>) spaces1 surnameParser)
+        (\z -> flbindParser  ((>>>) spaces1 smokerParser)
+          (\a -> flbindParser  ((>>>) spaces1 phoneParser)
+            (\b -> valueParser $ Person x y z a b))))) 
 
 -- Make sure all the tests pass!
 
@@ -592,8 +599,7 @@ instance Functor Parser where
     (a -> b)
     -> Parser a
     -> Parser b
-  (<$>) =
-     error "todo: Course.Parser (<$>)#instance Parser"
+  (<$>) f = bindParser (valueParser . f)
 
 -- | Write an Applicative functor instance for a @Parser@.
 -- /Tip:/ Use @bindParser@ and @valueParser@.
@@ -601,14 +607,12 @@ instance Applicative Parser where
   pure ::
     a
     -> Parser a
-  pure =
-    error "todo: Course.Parser pure#instance Parser"
+  pure = valueParser
   (<*>) ::
     Parser (a -> b)
     -> Parser a
     -> Parser b
-  (<*>) =
-    error "todo: Course.Parser (<*>)#instance Parser"
+  (<*>) pf pa = bindParser (\f -> bindParser (\a -> valueParser(f a)) pa) pf
 
 -- | Write a Monad instance for a @Parser@.
 instance Monad Parser where
@@ -616,5 +620,4 @@ instance Monad Parser where
     (a -> Parser b)
     -> Parser a
     -> Parser b
-  (=<<) =
-    error "todo: Course.Parser (=<<)#instance Parser"
+  (=<<) = bindParser
