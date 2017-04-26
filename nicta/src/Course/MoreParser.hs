@@ -231,8 +231,7 @@ betweenCharTok ::
   -> Char
   -> Parser a
   -> Parser a
-betweenCharTok =
-  error "todo: Course.MoreParser#betweenCharTok"
+betweenCharTok s e = between (charTok s) (charTok e)
 
 -- | Write a function that parses 4 hex digits and return the character value.
 --
@@ -251,8 +250,10 @@ betweenCharTok =
 -- True
 hex ::
   Parser Char
-hex =
-  error "todo: Course.MoreParser#hex"
+hex = do
+   digits <- replicateA 4 (satisfy isHexDigit)
+   let Full r = readHex digits
+   return $ chr r
 
 -- | Write a function that parses the character 'u' followed by 4 hex digits and return the character value.
 --
@@ -274,8 +275,7 @@ hex =
 -- True
 hexu ::
   Parser Char
-hexu =
-  error "todo: Course.MoreParser#hexu"
+hexu = is 'u' >>> hex
 
 -- | Write a function that produces a non-empty list of values coming off the given parser (which must succeed at least once),
 -- separated by the second given parser.
@@ -297,8 +297,11 @@ sepby1 ::
   Parser a
   -> Parser s
   -> Parser (List a)
-sepby1 =
-  error "todo: Course.MoreParser#sepby1"
+sepby1 pa ps = 
+  do 
+    a1 <- pa 
+    arest <- list ( ps >>> pa )
+    return $ a1 :. arest
 
 -- | Write a function that produces a list of values coming off the given parser,
 -- separated by the second given parser.
@@ -320,8 +323,7 @@ sepby ::
   Parser a
   -> Parser s
   -> Parser (List a)
-sepby =
-  error "todo: Course.MoreParser#sepby"
+sepby pa ps = sepby1 pa ps ||| valueParser Nil
 
 -- | Write a parser that asserts that there is no remaining input.
 --
@@ -332,8 +334,9 @@ sepby =
 -- True
 eof ::
   Parser ()
-eof =
-  error "todo: Course.MoreParser#eof"
+eof = P (\i -> case i of 
+    Nil -> Result Nil ()
+    x :. _ ->  ErrorResult (UnexpectedChar x))
 
 -- | Write a parser that produces a character that satisfies all of the given predicates.
 --
@@ -356,8 +359,8 @@ eof =
 satisfyAll ::
   List (Char -> Bool)
   -> Parser Char
-satisfyAll =
-  error "todo: Course.MoreParser#satisfyAll"
+satisfyAll tests =
+  satisfy (and . (sequence tests))
 
 -- | Write a parser that produces a character that satisfies any of the given predicates.
 --
@@ -377,8 +380,8 @@ satisfyAll =
 satisfyAny ::
   List (Char -> Bool)
   -> Parser Char
-satisfyAny =
-  error "todo: Course.MoreParser#satisfyAny"
+satisfyAny tests =
+  satisfy (or . (sequence tests))
 
 -- | Write a parser that parses between the two given characters, separated by a comma character ','.
 --
@@ -406,5 +409,4 @@ betweenSepbyComma ::
   -> Char
   -> Parser a
   -> Parser (List a)
-betweenSepbyComma =
-  error "todo: Course.MoreParser#betweenSepbyComma"
+betweenSepbyComma c e p = betweenCharTok c e (sepby p (charTok ',')) 
