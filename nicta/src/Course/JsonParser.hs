@@ -14,6 +14,7 @@ import Course.Applicative
 import Course.Monad
 import Course.List
 import Course.Optional
+import Data.Ratio
 
 -- $setup
 -- >>> :set -XOverloadedStrings
@@ -109,8 +110,15 @@ toSpecialCharacter c =
 -- True
 jsonString ::
   Parser Chars
-jsonString =
-  error "todo: Course.JsonParser#jsonString"
+jsonString = between (is '\"') (is '\"')
+     (list ( ( (is '\\') >>> (is 'u') >>> hex) 
+           ||| ( (is '\\') >>> (do 
+                                 c <- character
+                                 case (toSpecialCharacter c) of 
+                                   Full sc -> return $ fromSpecialCharacter sc
+                                   _       -> unexpectedCharParser c
+                                 ))
+           ||| (satisfy (\c -> c /= '\"' && c /= '\\'))))
 
 -- | Parse a JSON rational.
 --
@@ -138,8 +146,9 @@ jsonString =
 -- True
 jsonNumber ::
   Parser Rational
-jsonNumber =
-  error "todo: Course.JsonParser#jsonNumber"
+jsonNumber = P (\i -> case readFloats i of 
+                    Full (n, r) -> Result r n
+                    _ -> ErrorResult (UnexpectedChar ' '))
 
 -- | Parse a JSON true literal.
 --
