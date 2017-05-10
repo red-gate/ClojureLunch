@@ -82,8 +82,12 @@ data Op =
 -- /Tip:/ @putStrLn :: String -> IO ()@ -- Prints a string and then a new line to standard output.
 convertInteractive ::
   IO ()
-convertInteractive =
-  error "todo: Course.Interactive#convertInteractive"
+convertInteractive = vooid(
+    do 
+      putStr "enter a string "
+      l <- getLine
+      putStrLn $ map toUpper l
+    )
 
 -- |
 --
