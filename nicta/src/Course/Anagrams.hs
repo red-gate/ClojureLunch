@@ -7,6 +7,7 @@ module Course.Anagrams where
 import Course.Core
 import Course.List
 import Course.Functor
+import qualified Prelude as P(fmap, return, (>>=))
 
 {-
 
@@ -32,8 +33,11 @@ anagrams ::
   Chars
   -> Filename
   -> IO (List Chars)
-anagrams =
-  error "todo: Course.Anagrams#anagrams"
+anagrams word filename = 
+  let wordsInFile = P.fmap lines $ readFile filename in
+  P.fmap (intersectBy (on (==) (map toLower))  ana) wordsInFile
+  where ana = permutations word
+
 
 -- Compare two strings for equality, ignoring case
 equalIgnoringCase ::

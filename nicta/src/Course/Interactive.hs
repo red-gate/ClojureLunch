@@ -11,6 +11,7 @@ import Course.Monad
 import Course.Traversable
 import Course.List
 import Course.Optional
+--import Data.String.Utils
 
 -- | Eliminates any value over which a functor is defined.
 vooid ::
@@ -115,7 +116,15 @@ convertInteractive = vooid(
 reverseInteractive ::
   IO ()
 reverseInteractive =
-  error "todo: Course.Interactive#reverseInteractive"
+  vooid(
+    do 
+      putStr "enter an input file "
+      f <- getLine
+      putStr "enter an output file"
+      f2 <- getLine
+      s <- readFile f
+      writeFile f2 $ reverse s
+    )
 
 -- |
 --
@@ -141,7 +150,15 @@ reverseInteractive =
 encodeInteractive ::
   IO ()
 encodeInteractive =
-  error "todo: Course.Interactive#encodeInteractive"
+  vooid (do 
+      putStr "enter a url "
+      u <- getLine
+      putStrLn ( flatten $ map (\c -> case c of
+                                           ' ' -> "%20" 
+                                           '\t' -> "%09"
+                                           '\"' -> "%22"
+                                           _ -> c :. Nil ) u)
+    ) 
 
 interactive ::
   IO ()
