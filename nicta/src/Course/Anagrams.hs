@@ -44,5 +44,5 @@ equalIgnoringCase ::
   Chars
   -> Chars
   -> Bool
-equalIgnoringCase =
-  error "todo: Course.Anagrams#equalIgnoringCase"
+equalIgnoringCase a b =  (==) (map toLower a) (map toLower b)
+  
