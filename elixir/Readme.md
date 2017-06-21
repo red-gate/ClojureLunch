@@ -55,10 +55,10 @@ install hex `mix local.hex`
 
 install phoenix `mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez`
 
-By default Phoenix projects expect to use `Brunch` for asset management, but you can create
+By default Phoenix projects expect to use [Brunch](http://brunch.io/) for asset management, but you can create
 new projects with `--no-brunch` flag to avoid this.
 
-Also they assume you'll want a database and use `Ecto` to provide this. Again `--no-ecto` flag on project creation skips this.
+Also they assume you'll want a database and use [Ecto](https://github.com/elixir-ecto/ecto) to provide this. Again `--no-ecto` flag on project creation skips this.
 
 _note: ecto support for SQL Server is a bit poor, and in flux at the time of writing. Postgres or Mysql are better supported_
 
