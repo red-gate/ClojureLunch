@@ -19,7 +19,7 @@ This will also install `Erlang`
 
 ## Basics
 
-### docs
+### Docs
 
 [Getting started guides](https://elixir-lang.org/getting-started/introduction.html)
 
@@ -39,7 +39,7 @@ Use `mix new myproject` to create a new project
 
 [Intro](https://elixir-lang.org/getting-started/mix-otp/introduction-to-mix.html)
 
-## Package manager : hex
+### Package manager : hex
 
 [Hex](https://hex.pm/) is the Erlang package manager.
 
