@@ -63,3 +63,7 @@ Also they assume you'll want a database and use [Ecto](https://github.com/elixir
 _note: ecto support for SQL Server is a bit poor, and in flux at the time of writing. Postgres or Mysql are better supported_
 
 Simple, skeleton project: `mix phoenix.new web --no-brunch --no-ecto`
+
+### Learning Resources 
+
+[Elixir School](https://elixirschool.com/) is a thing. 
