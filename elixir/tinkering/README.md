@@ -10,3 +10,13 @@ Then we wrote an implementation of the same thing but making use of the
 [GenServer](https://hexdocs.pm/elixir/GenServer.html) behaviour. See [stack_two.ex](lib/stack_two.ex)
 
 There's a [Getting Started Guide](https://elixir-lang.org/getting-started/mix-otp/genserver.html) for GenServer.
+
+## running stuff
+
+`mix compile`
+
+`mix test`
+
+`iex -S mix` to load project into the Repl
+
+`r StackOne` to recompile and reload `StackOne` module inside iex 
