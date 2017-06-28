@@ -40,7 +40,7 @@ def handle_call(:pop, _from, [x | xs]) do
 end
 
 @doc "handle a :peek call"
-def handle_call(:peek, _from, [x|xs]) do
-  {:reply, x, [x|xs]}
+def handle_call(:peek, _from, [x|_]=stack) do
+  {:reply, x, stack}
 end
 end
