@@ -45,6 +45,12 @@ Use `mix new myproject` to create a new project
 
 Install it with `mix local.hex`
 
+## Learning Resources
+
+[Elixir Koans](https://github.com/elixirkoans/elixir-koans) seem like a fairly gentle introduction-to-mix
+
+[Elixir School](https://elixirschool.com/) is a thing.
+
 ## Phoenix, the web framework
 
 [Phoenix](http://www.phoenixframework.org/) is a web framework built with Elixir
@@ -63,7 +69,3 @@ Also they assume you'll want a database and use [Ecto](https://github.com/elixir
 _note: ecto support for SQL Server is a bit poor, and in flux at the time of writing. Postgres or Mysql are better supported_
 
 Simple, skeleton project: `mix phoenix.new web --no-brunch --no-ecto`
-
-### Learning Resources 
-
-[Elixir School](https://elixirschool.com/) is a thing. 
