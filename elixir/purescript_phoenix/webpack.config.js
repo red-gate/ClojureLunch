@@ -1,4 +1,5 @@
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
+var CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
   entry: ["./web/static/css/app.css", "./web/static/js/app.js"],
@@ -16,5 +17,6 @@ module.exports = {
             }
         )}
     ]},
-    plugins: [new ExtractTextPlugin({ filename: 'css/app.css' })]
+    plugins: [ new ExtractTextPlugin({ filename: 'css/app.css' })
+             , new CopyWebpackPlugin([{ from: "./web/static/assets" }])]
 };
