@@ -20,3 +20,5 @@ import "phoenix_html"
 
  import socket from "./socket"
  import Main from "../purescript/src/Main.purs"
+
+ Main.main();

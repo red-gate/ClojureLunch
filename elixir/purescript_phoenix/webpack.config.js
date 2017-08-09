@@ -36,5 +36,7 @@ module.exports = {
         }
     ]},
     plugins: [ new ExtractTextPlugin({ filename: 'css/app.css' })
-             , new CopyWebpackPlugin([{ from: "./web/static/assets" }])]
+             , new CopyWebpackPlugin([{ from: "./web/static/assets" }])],
+    resolve: {
+    }
 };
