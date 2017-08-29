@@ -1,39 +1,24 @@
 module Main where
 
-import Prelude hiding (div)
+import Phoenix
+
 import Control.Monad.Eff (Eff)
-import Pux (CoreEffects, EffModel, start)
-import Pux.DOM.Events (onClick)
-import Pux.DOM.HTML (HTML)
-import Pux.Renderer.React (renderToDOM)
-import Text.Smolder.HTML (button, div, span)
-import Text.Smolder.Markup (text, (#!))
-
-data Event = Increment | Decrement
-
-type State = Int
-
--- | Return a new state (and effects) from each event
-foldp :: ∀ fx. Event -> State -> EffModel State Event fx
-foldp Increment n = { state: n + 1, effects: [] }
-foldp Decrement n = { state: n - 1, effects: [] }
-
--- | Return markup from the state
-view :: State -> HTML Event
-view count =
-  div do
-    button #! onClick (const Increment) $ text "Increment"
-    span $ text (show count)
-    button #! onClick (const Decrement) $ text "Decrement"
-
+import Control.Monad.Eff.Console (log, CONSOLE)
+import Data.Foreign (Foreign, unsafeFromForeign)
+import Prelude hiding (div,join)
 -- | Start and render the app
-main :: ∀ fx. Eff (CoreEffects fx) Unit
-main = do
-  app <- start
-    { initialState: 0
-    , view
-    , foldp
-    , inputs: []
-    }
+foreign import emptyJsObject :: Foreign
 
-  renderToDOM "#app" app.markup app.input
+type AppEffects eff = (phoenix :: PHOENIX, console :: CONSOLE | eff)
+
+main :: forall eff. Eff (AppEffects eff)  Unit
+main = do 
+  sock <- newSocket "/socket" defaultSocketOptions
+  connect sock
+  chan <- channel sock "room:lobby" emptyJsObject
+  p <- join chan
+  on chan "ok" (\c e d -> log (unsafeFromForeign d))
+  log "Hello s"
+
+
+
