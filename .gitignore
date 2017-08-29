@@ -9,3 +9,4 @@ pom.xml
 .nrepl-port
 target/
 haskell-cmd-game/.stack-work/
+.psc-package
