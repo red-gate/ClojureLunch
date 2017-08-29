@@ -1,6 +1,6 @@
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
 var CopyWebpackPlugin = require("copy-webpack-plugin");
-
+var webpack = require('webpack');
 module.exports = {
   devtool: 'eval-source-map',
 
@@ -35,7 +35,10 @@ module.exports = {
           }
         }
     ]},
-    plugins: [ new ExtractTextPlugin({ filename: 'css/app.css' })
+    plugins: [new webpack.ProvidePlugin({
+      "window.Phoenix": "phoenix"
+    })
+             ,  new ExtractTextPlugin({ filename: 'css/app.css' })
              , new CopyWebpackPlugin([{ from: "./web/static/assets" }])],
     resolve: {
     }
