@@ -8,10 +8,10 @@ import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Error.Class (catchError)
-import Control.Monad.Except (runExceptT)
+import Control.Monad.Except (runExcept, runExceptT)
 import DOM.Event.MouseEvent (MouseEvent, eventToMouseEvent, screenX, screenY)
 import DOM.HTML.Event.EventTypes (timeout)
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.Foreign (Foreign, toForeign, unsafeFromForeign)
 import Data.Identity (Identity(..))
 import Data.Maybe (Maybe(..))
@@ -67,13 +67,10 @@ data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMo
 
 getMouseEvent :: DOMEvent -> Maybe Event
 getMouseEvent e = 
-  case runExceptT $ do
+  either (\_ -> Nothing) (Just) $ runExcept $ do
       me <- eventToMouseEvent e
       pure $ MousePosition (screenX me) (screenY me)
-  of 
-    Identity either -> case either of 
-      Left _ -> Nothing
-      Right e -> Just e
+  
 
   where f _ = TextUpdated "foo" 
 -- | Return a new state (and effects) from each event
@@ -103,6 +100,8 @@ view state =
         backgroundColor green
       #! onMouseMove (\x -> MouseMoved x) $ 
       do pure unit
+
+
 
 
 
