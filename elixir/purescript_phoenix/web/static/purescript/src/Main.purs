@@ -2,23 +2,26 @@ module Main where
 
 import Phoenix
 
+import CSS (background, backgroundColor, color, green)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
+import DOM.Event.MouseEvent (eventToMouseEvent)
 import DOM.HTML.Event.EventTypes (timeout)
 import Data.Foreign (Foreign, toForeign, unsafeFromForeign)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse, traverse_)
 import Prelude hiding (div,join)
 import Pux (CoreEffects, EffModel, start)
-import Pux.DOM.Events (onChange, onClick, targetValue)
+import Pux.DOM.Events (DOMEvent, onChange, onClick, onMouseMove, targetValue)
 import Pux.DOM.HTML (HTML)
+import Pux.DOM.HTML.Attributes (style)
 import Pux.Renderer.React (renderToDOM)
 import Signal.Channel (CHANNEL, subscribe)
 import Signal.Channel as Sig
-import Text.Smolder.HTML (Html, button, div, input, span, ul, li)
-import Text.Smolder.HTML.Attributes (type', value)
+import Text.Smolder.HTML (Html, button, canvas, div, input, li, span, ul)
+import Text.Smolder.HTML.Attributes (height, type', value, width)
 import Text.Smolder.Markup (text, (#!), (!))
 
 -- | Start and render the app
@@ -26,6 +29,7 @@ foreign import emptyJsObject :: Foreign
 
 type AppEffects eff = (channel :: CHANNEL, exception :: EXCEPTION, phoenix :: PHOENIX, console :: CONSOLE | eff)
 type State = { msg :: String , chan :: Channel, msgs :: Array String }
+
 
 main :: forall eff. Eff (AppEffects eff)  Unit
 main = do
@@ -55,7 +59,7 @@ sendMessage chan msg =  do
   _ <- push chan "new_message" $ toForeign {value: msg}
   pure unit
   
-data Event = TextUpdated String | SendMessage | MessageReceived String
+data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent
 
 -- | Return a new state (and effects) from each event
 foldp :: ∀ fx. Event -> State -> EffModel State Event ( console :: CONSOLE, phoenix :: PHOENIX | fx )
@@ -65,6 +69,9 @@ foldp SendMessage s = { state: s { msg = "" }  ,
                 pure Nothing] }
 foldp (TextUpdated msg) s = { state: s { msg = msg }, effects: [] }
 foldp (MessageReceived msg) s = { state: s { msgs = (append s.msgs [msg])}, effects: [] }
+foldp (MouseMoved event) s = {state: s, effects: [do 
+                _ <- liftEff $ log (show (targetValue event))
+                pure Nothing]}
 
 -- | Return markup from the state
 view :: State -> HTML Event
@@ -75,3 +82,21 @@ view state =
     div do
       ul do
         traverse_ (\x -> li $ text x) state.msgs 
+    canvas ! width "200" ! height "200" ! style 
+      do
+        backgroundColor green
+      #! onMouseMove (\x -> MouseMoved x) $ 
+      do pure unit
+
+
+
+
+
+
+
+
+
+
+
+
+
