@@ -7,9 +7,13 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import DOM.Event.MouseEvent (eventToMouseEvent)
+import Control.Monad.Error.Class (catchError)
+import Control.Monad.Except (runExceptT)
+import DOM.Event.MouseEvent (MouseEvent, eventToMouseEvent, screenX, screenY)
 import DOM.HTML.Event.EventTypes (timeout)
+import Data.Either (Either(..))
 import Data.Foreign (Foreign, toForeign, unsafeFromForeign)
+import Data.Identity (Identity(..))
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse, traverse_)
 import Prelude hiding (div,join)
@@ -59,8 +63,19 @@ sendMessage chan msg =  do
   _ <- push chan "new_message" $ toForeign {value: msg}
   pure unit
   
-data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent
+data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MousePosition Int Int
 
+getMouseEvent :: DOMEvent -> Maybe Event
+getMouseEvent e = 
+  case runExceptT $ do
+      me <- eventToMouseEvent e
+      pure $ MousePosition (screenX me) (screenY me)
+  of 
+    Identity either -> case either of 
+      Left _ -> Nothing
+      Right e -> Just e
+
+  where f _ = TextUpdated "foo" 
 -- | Return a new state (and effects) from each event
 foldp :: ∀ fx. Event -> State -> EffModel State Event ( console :: CONSOLE, phoenix :: PHOENIX | fx )
 foldp SendMessage s = { state: s { msg = "" }  , 
@@ -69,9 +84,10 @@ foldp SendMessage s = { state: s { msg = "" }  ,
                 pure Nothing] }
 foldp (TextUpdated msg) s = { state: s { msg = msg }, effects: [] }
 foldp (MessageReceived msg) s = { state: s { msgs = (append s.msgs [msg])}, effects: [] }
-foldp (MouseMoved event) s = {state: s, effects: [do 
-                _ <- liftEff $ log (show (targetValue event))
-                pure Nothing]}
+foldp (MouseMoved event) s = {state: s, effects: [do
+                      pure (getMouseEvent event)
+                  ]}
+foldp (MousePosition x y) s = {state: s, effects: []}
 
 -- | Return markup from the state
 view :: State -> HTML Event
@@ -87,6 +103,15 @@ view state =
         backgroundColor green
       #! onMouseMove (\x -> MouseMoved x) $ 
       do pure unit
+
+
+
+
+
+
+
+
+
 
 
 
