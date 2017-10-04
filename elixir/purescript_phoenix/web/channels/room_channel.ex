@@ -8,6 +8,10 @@ use Phoenix.Channel
     broadcast! socket, "new_message", payload
     {:noreply, socket}
   end
+  def handle_in("mouse_moved", payload, socket) do
+    broadcast! socket, "mouse_moved", payload
+    {:noreply, socket}
+  end
 #  def join("room:" <> _private_room_id, _params, _socket) do
 #    {:error, %{reason: "unauthorized"}}
 #  end
