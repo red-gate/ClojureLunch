@@ -48,7 +48,7 @@ main = do
 
   sock <- newSocket "/socket" defaultSocketOptions
   connect sock
-  chan <- channel sock "room:lobby" emptyJsObject
+  chan <- channel sock ("room:" <> "2") emptyJsObject
   on chan "new_message" (\c e m -> Sig.send sigChannel (MessageReceived ((unsafeFromForeign m).value) ))
   on chan "mouse_moved" (\c e m -> Sig.send sigChannel (MouseMoveReceived ((unsafeFromForeign m).value)))
   p <- join chan
