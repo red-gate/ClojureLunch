@@ -7,7 +7,7 @@ defmodule Sorter do
         # { currentList, parent, status, operation }
         # status = :incomplete, :left or :right depending on whether we've
         # had any results reported back to us from our children
-        {_, pid} = GenServer.start(__MODULE__, {mylist,self(),:incomplete,:noop})
+        {_, pid} = GenServer.start(__MODULE__, mylist)
         pid
     end
     defp start(mylist, op) do
@@ -15,6 +15,11 @@ defmodule Sorter do
         pid
     end
 
+    def init(mylist) when is_list(mylist) do
+      # start a process which will report back to this one when it's done
+      start(mylist, :report)
+      {:ok, nil} # don't need any state
+    end
     # We have no work to do, call our parent back immediately and die.
     # We cast the op we were given (:left or :right) and the list we hold
     def init({[], parent, _, op}=state) do
@@ -43,7 +48,6 @@ defmodule Sorter do
     # server implementation
     # If we've already received our 'right' response we can report back and die
     def handle_cast({:left, left}, {current, parent, :right, op}=s) do
-      IO.inspect left ++ current
       GenServer.cast(parent, {op, left ++ current})
       {:stop, :normal, s}
     end
@@ -53,13 +57,17 @@ defmodule Sorter do
     end
     # If we've already received our 'left' response we can report back and die
     def handle_cast({:right, right}, {current, parent, :left, op}=s) do
-      IO.inspect current ++ right
       GenServer.cast(parent, {op, current ++ right})
       {:stop, :normal, s}
     end
     # We've not received our 'left' response so stay alive and wait for it
     def handle_cast({:right, right}, {current, parent, _, op}) do
       {:noreply, {current ++ right, parent, :right, op}}
+    end
+
+    def handle_cast({:report, lst}, _) do
+      IO.puts "All done sorting #{length lst} items\n#{Kernel.inspect lst}"
+      {:stop, :normal, nil}
     end
 
 end
