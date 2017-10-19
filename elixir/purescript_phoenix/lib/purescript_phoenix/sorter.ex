@@ -1,6 +1,9 @@
 defmodule Sorter do
     use GenServer
 
+    # Example usage:
+    # Sorter.start( Enum.map(1..1000000, fn _ -> Enum.random(1..1000000) end) )
+
     # clients should create us with Sorter.start([1,2,3,4,5])
     # ... except that there's no sane interface to report success back to them yet ;)
     def start(mylist) do
