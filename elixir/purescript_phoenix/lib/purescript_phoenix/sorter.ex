@@ -7,13 +7,15 @@ defmodule Sorter do
     # clients should create us with Sorter.start([1,2,3,4,5])
     # ... except that there's no sane interface to report success back to them yet ;)
     def start(mylist) do
-        # { currentList, parent, status, operation }
-        # status = :incomplete, :left or :right depending on whether we've
-        # had any results reported back to us from our children
         {_, pid} = GenServer.start(__MODULE__, mylist)
         pid
     end
     defp start(mylist, op) do
+      # start one of the internal 'worker' processes
+      # state looks like { currentList, parent, status, operation }
+      # status = :incomplete, :left or :right depending on whether we've
+      # had any results reported back to us from our children
+      # op = :left, :right or :report depending on what our parent is expecting of us
         {_, pid} = GenServer.start(__MODULE__, {mylist,self(),:incomplete,op})
         pid
     end
