@@ -38,7 +38,7 @@ foreign import emptyJsObject :: Foreign
 
 type Coords = { x:: Int, y:: Int}
 type AppEffects eff = (channel :: CHANNEL, exception :: EXCEPTION, phoenix :: PHOENIX, console :: CONSOLE | eff)
-type State = { msg :: String , chan :: Channel, msgs :: Array String, coords:: Coords }
+type State = { msg :: String , chan :: Channel, sortChan :: Channel, msgs :: Array String, coords:: Coords }
 
 
 main :: forall eff. Eff (AppEffects eff)  Unit
@@ -49,13 +49,17 @@ main = do
   sock <- newSocket "/socket" defaultSocketOptions
   connect sock
   chan <- channel sock ("room:lobby") emptyJsObject
+  sortChan <- channel sock ("sorter:all") emptyJsObject
   on chan "new_message" (\c e m -> Sig.send sigChannel (MessageReceived ((unsafeFromForeign m).value) ))
   on chan "mouse_moved" (\c e m -> Sig.send sigChannel (MouseMoveReceived ((unsafeFromForeign m).value)))
   p <- join chan
   p2 <- receive p "ok" (\p d -> log "Joined lobby")
 
+  p <- join sortChan
+  p2 <- receive p "ok" (\p d -> log "Joined sorter")
+
   app <- start
-    { initialState: {msg: "Hello world", chan: chan, msgs: ["one", "two"], coords: { x: 0, y: 0} }
+    { initialState: {msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0} }
     , view
     , foldp
     , inputs: [ subscribe sigChannel ]
@@ -69,8 +73,9 @@ sendMessage :: forall t eff. Channel -> t -> String -> Eff (AppEffects eff) Unit
 sendMessage chan msg t =  do 
   _ <- push chan t $ toForeign {value: msg}
   pure unit
+
   
-data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MouseMoveReceived Coords
+data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MouseMoveReceived Coords | SortList 
 
 getMouseEvent :: DOMEvent -> Maybe ({x :: Int, y :: Int})
 getMouseEvent e = 
@@ -98,10 +103,15 @@ foldp (MouseMoved event) s = let pos = getMouseEvent event in {state: s, effects
 foldp (MouseMoveReceived c) s = { state: s { coords = c } , effects: [do 
                 _ <- liftEff $ log (show c.x)
                 pure Nothing]}
+foldp SortList s = { state: s   , 
+    effects: [ do 
+                _ <- liftEff $ sendMessage s.sortChan [1,3, -2, 2] "sort_list"
+                pure Nothing] }
 -- | Return markup from the state
 view :: State -> HTML Event
 view state =
   div do
+    button #! onClick (const SortList) $ text "Sort List"
     button #! onClick (const SendMessage) $ text "Send Message"
     input ! type' "text" ! value state.msg #! onChange (\x -> TextUpdated (targetValue x) )
     div do

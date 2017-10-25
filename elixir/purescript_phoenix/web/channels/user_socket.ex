@@ -3,6 +3,7 @@ defmodule PurescriptPhoenix.UserSocket do
 
   ## Channels
   channel "room:*", PurescriptPhoenix.RoomChannel
+  channel "sorter:*", PurescriptPhoenix.SortChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket

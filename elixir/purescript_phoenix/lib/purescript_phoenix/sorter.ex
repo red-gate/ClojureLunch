@@ -7,7 +7,7 @@ defmodule Sorter do
     # clients should create us with Sorter.start([1,2,3,4,5])
     # ... except that there's no sane interface to report success back to them yet ;)
     def start(mylist) do
-        {_, pid} = GenServer.start(__MODULE__, mylist)
+        {_, pid} = GenServer.start(__MODULE__, {mylist, self()})
         pid
     end
     defp start(mylist, op) do
@@ -20,10 +20,10 @@ defmodule Sorter do
         pid
     end
 
-    def init(mylist) when is_list(mylist) do
+    def init({mylist,parent}) when is_pid(parent) and is_list(mylist) do
       # start a process which will report back to this one when it's done
       start(mylist, :report)
-      {:ok, nil} # don't need any state
+      {:ok, parent} # don't need any state
     end
     # We have no work to do, call our parent back immediately and die.
     # We cast the op we were given (:left or :right) and the list we hold
@@ -70,8 +70,10 @@ defmodule Sorter do
       {:noreply, {current ++ right, parent, :right, op}}
     end
 
-    def handle_cast({:report, lst}, _) do
+    def handle_cast({:report, lst}, parent) do
       IO.puts "All done sorting #{length lst} items\n#{Kernel.inspect lst}"
+
+      send (parent, {:sortfinished, list})
       {:stop, :normal, nil}
     end
 
