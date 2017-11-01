@@ -106,7 +106,7 @@ foldp (MouseMoveReceived c) s = { state: s { coords = c } , effects: [do
                 pure Nothing]}
 foldp SortList s = { state: s   , 
     effects: [ do 
-                _ <- liftEff $ sendMessage s.sortChan [1,3, -2, 2, 4, 7, 6, 3] "sort_list"
+                _ <- liftEff $ sendMessage s.sortChan [5, -1, 7, 1, 3, 8, -2, 2, 4, 6, 0] "sort_list"
                 pure Nothing] }
 -- | Return markup from the state
 view :: State -> HTML Event
