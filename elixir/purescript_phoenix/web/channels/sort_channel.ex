@@ -16,5 +16,10 @@ use Phoenix.Channel
     broadcast! socket, "list_update", %{value: Kernel.inspect(list_update)}
     {:noreply, socket}
   end
+  def handle_info({:sortfinished, list}, socket) do
+    # note that this is just the sorted list, stripped of indices
+    # don't do anything, at the moment.
+    {:noreply, socket}
+  end
 
 end
