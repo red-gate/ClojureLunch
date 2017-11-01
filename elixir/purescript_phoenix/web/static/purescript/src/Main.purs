@@ -52,6 +52,7 @@ main = do
   sortChan <- channel sock ("sorter:all") emptyJsObject
   on chan "new_message" (\c e m -> Sig.send sigChannel (MessageReceived ((unsafeFromForeign m).value) ))
   on chan "mouse_moved" (\c e m -> Sig.send sigChannel (MouseMoveReceived ((unsafeFromForeign m).value)))
+  on sortChan "list_update" (\c e m -> Sig.send sigChannel (MessageReceived ((unsafeFromForeign m).value) ))
   p <- join chan
   p2 <- receive p "ok" (\p d -> log "Joined lobby")
 
@@ -105,7 +106,7 @@ foldp (MouseMoveReceived c) s = { state: s { coords = c } , effects: [do
                 pure Nothing]}
 foldp SortList s = { state: s   , 
     effects: [ do 
-                _ <- liftEff $ sendMessage s.sortChan [1,3, -2, 2] "sort_list"
+                _ <- liftEff $ sendMessage s.sortChan [1,3, -2, 2, 4, 7, 6, 3] "sort_list"
                 pure Nothing] }
 -- | Return markup from the state
 view :: State -> HTML Event
