@@ -12,11 +12,11 @@ defmodule Sorter do
     end
     defp start(mylist, overseer, op) do
       # start one of the internal 'worker' processes
-      # state looks like { currentList, parent, status, operation }
+      # state looks like { currentList, parent, overseer, status, operation }
       # status = :incomplete, :left or :right depending on whether we've
       # had any results reported back to us from our children
       # op = :left, :right or :report depending on what our parent is expecting of us
-        {_, pid} = GenServer.start(__MODULE__, {mylist,self(),overseer,:incomplete,op})
+        {_, pid} = GenServer.start(__MODULE__, {mylist, self(), overseer, :incomplete, op})
         pid
     end
 
@@ -55,40 +55,59 @@ defmodule Sorter do
     # server implementation
     # If we've already received our 'right' response we can report back and die
     def handle_cast({:left, left}, {current, parent, overseer, :right, op}=s) do
-      fullset = left ++ current      
-      result = relabel(fullset)
-      send(overseer, {:update, result})
-      GenServer.cast(parent, {op, result})
+      
+      result = relabel(left ++ current)
+               |> updateOverseer(overseer)
+               |> notifyParent(parent, op)
+
       {:stop, :normal, s}
     end
 
     # We've not received our 'right' response so stay alive and wait for it
     def handle_cast({:left, left}, {current, parent, overseer,  _, op}) do
-      {:noreply, {left ++ current, parent, overseer,  :left, op}}
+      
+      result = relabel(left ++ current)
+               |> updateOverseer(overseer)
+
+      {:noreply, {result, parent, overseer,  :left, op}}
     end
     # If we've already received our 'left' response we can report back and die
     def handle_cast({:right, right}, {current, parent, overseer, :left, op}=s) do
-      fullset = current ++ right
-      result = relabel(fullset)
-      send(overseer, {:update, result})
-      GenServer.cast(parent, {op, result})
+      
+      result = relabel(current ++ right) 
+               |> updateOverseer(overseer)
+               |> notifyParent(parent, op)
+
       {:stop, :normal, s}
     end
     # We've not received our 'left' response so stay alive and wait for it
     def handle_cast({:right, right}, {current, parent, overseer, _, op}) do
-      {:noreply, {current ++ right, parent, overseer, :right, op}}
+      
+      result = relabel(current ++ right) 
+               |> updateOverseer(overseer)
+
+      {:noreply, {result, parent, overseer, :right, op}}
     end
   
     def handle_cast({:report, lst}, parent) do
       IO.puts "All done sorting #{length lst} items\n#{Kernel.inspect lst}"
 
-      send(parent, {:sortfinished, lst})
+      send(parent, {:sortfinished, Enum.map(lst, fn {v,_} -> v end)})
       {:stop, :normal, nil}
     end
 
     defp relabel(fullset) do
       indices = Enum.sort( Enum.map(fullset, fn {_,i} -> i end) )
-      
       Enum.zip( Enum.map(fullset, fn {v,_} -> v end), indices)      
+    end
+
+    defp updateOverseer(lst, overseer) do
+      send(overseer, {:update, lst})
+      lst
+    end
+
+    defp notifyParent(lst, parent, op) do
+      GenServer.cast(parent, {op, lst})
+      lst
     end
 end
