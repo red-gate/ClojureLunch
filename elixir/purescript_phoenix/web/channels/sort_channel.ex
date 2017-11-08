@@ -13,7 +13,9 @@ use Phoenix.Channel
 
   def handle_info({:update, list_update}, socket) do
     # broadcast list update (complete with indices)
-    broadcast! socket, "list_update", %{value: Kernel.inspect(list_update)}
+    stream = Enum.map(list_update, fn {x,y} -> [x,y] end)
+    # broadcast! socket, "list_update", %{value: Kernel.inspect(list_update)}
+    broadcast! socket, "list_update", %{value: stream}
     {:noreply, socket}
   end
   def handle_info({:sortfinished, list}, socket) do
