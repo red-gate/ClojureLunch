@@ -4,10 +4,11 @@ import Phoenix
 
 import CSS (background, backgroundColor, color, green)
 import CSS.Transform (offsetLeft)
-import Control.Monad.Eff (Eff)
+import Control.Monad.Eff (Eff, forE)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
+import Control.Monad.Eff.Random (RANDOM, randomInt)
 import Control.Monad.Error.Class (catchError)
 import Control.Monad.Except (runExcept, runExceptT)
 import DOM.Event.Event (currentTarget)
@@ -15,12 +16,15 @@ import DOM.Event.MouseEvent (MouseEvent, eventToMouseEvent, screenX, screenY, cl
 import DOM.HTML.Event.EventTypes (timeout)
 import DOM.HTML.HTMLElement (offsetTop)
 import DOM.Node.Node (parentElement)
+import Data.Array (index, updateAt)
 import Data.Either (Either(..), either)
 import Data.Foreign (Foreign, toForeign, unsafeFromForeign)
+import Data.Function (apply)
 import Data.Identity (Identity(..))
 import Data.Maybe (Maybe(..))
-import Data.Traversable (traverse, traverse_)
+import Data.Traversable (foldr, traverse, traverse_)
 import Data.Tuple (Tuple(..))
+import Data.Unfoldable (replicateA)
 import Prelude hiding (div,join)
 import Pux (CoreEffects, EffModel, start)
 import Pux.DOM.Events (DOMEvent, onChange, onClick, onMouseMove, targetValue)
@@ -30,15 +34,22 @@ import Pux.Renderer.React (renderToDOM)
 import Signal.Channel (CHANNEL, subscribe)
 import Signal.Channel as Sig
 import Text.Smolder.HTML (Html, button, canvas, div, input, li, span, ul)
-import Text.Smolder.HTML.Attributes (height, type', value, width)
+import Text.Smolder.HTML.Attributes (height, type', value, width, xmlns)
 import Text.Smolder.Markup (text, (#!), (!))
 
 -- | Start and render the app
 foreign import emptyJsObject :: Foreign
 
 type Coords = { x:: Int, y:: Int}
-type AppEffects eff = (channel :: CHANNEL, exception :: EXCEPTION, phoenix :: PHOENIX, console :: CONSOLE | eff)
-type State = { msg :: String , chan :: Channel, sortChan :: Channel, msgs :: Array String, coords:: Coords }
+type AppEffects eff = (channel :: CHANNEL, exception :: EXCEPTION, phoenix :: PHOENIX, console :: CONSOLE, random :: RANDOM  | eff)
+type State = { 
+  msg :: String , 
+  chan :: Channel, 
+  sortChan :: Channel, 
+  msgs :: Array String, 
+  coords:: Coords,
+  list:: Array(Int)
+}
 
 
 main :: forall eff. Eff (AppEffects eff)  Unit
@@ -52,6 +63,7 @@ main = do
   sortChan <- channel sock ("sorter:all") emptyJsObject
   on chan "new_message" (\c e m -> Sig.send sigChannel (MessageReceived ((unsafeFromForeign m).value) ))
   on chan "mouse_moved" (\c e m -> Sig.send sigChannel (MouseMoveReceived ((unsafeFromForeign m).value)))
+  on sortChan "list_update" (\c e m -> Sig.send sigChannel (ListUpdated ((unsafeFromForeign m).value) ))
   on sortChan "list_update" (\c e m -> Sig.send sigChannel (MessageReceived ((unsafeFromForeign m).value) ))
   p <- join chan
   p2 <- receive p "ok" (\p d -> log "Joined lobby")
@@ -60,7 +72,7 @@ main = do
   p2 <- receive p "ok" (\p d -> log "Joined sorter")
 
   app <- start
-    { initialState: {msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0} }
+    { initialState: {list: [], msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0} }
     , view
     , foldp
     , inputs: [ subscribe sigChannel ]
@@ -76,7 +88,7 @@ sendMessage chan msg t =  do
   pure unit
 
   
-data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MouseMoveReceived Coords | SortList 
+data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MouseMoveReceived Coords | SortList | ListUpdated (Array (Array Int)) | InitList (Array Int)
 
 getMouseEvent :: DOMEvent -> Maybe ({x :: Int, y :: Int})
 getMouseEvent e = 
@@ -88,7 +100,7 @@ getMouseEvent e =
   where f _ = TextUpdated "foo" 
     
 -- | Return a new state (and effects) from each event
-foldp :: ∀ fx. Event -> State -> EffModel State Event ( console :: CONSOLE, phoenix :: PHOENIX | fx )
+foldp :: ∀ fx. Event -> State -> EffModel State Event (random :: RANDOM, console :: CONSOLE, phoenix :: PHOENIX | fx )
 foldp SendMessage s = { state: s { msg = "" }  , 
     effects: [ do 
                 _ <- liftEff $ sendMessage  s.chan s.msg "new_message"
@@ -104,10 +116,27 @@ foldp (MouseMoved event) s = let pos = getMouseEvent event in {state: s, effects
 foldp (MouseMoveReceived c) s = { state: s { coords = c } , effects: [do 
                 _ <- liftEff $ log (show c.x)
                 pure Nothing]}
-foldp SortList s = { state: s   , 
+foldp SortList s = 
+    { state: s   , 
     effects: [ do 
-                _ <- liftEff $ sendMessage s.sortChan [5, -1, 7, 1, 3, 8, -2, 2, 4, 6, 0] "sort_list"
-                pure Nothing] }
+                randoms :: Array Int <- liftEff $ replicateA 20 (randomInt 1 4)
+                _ <- liftEff $ sendMessage s.sortChan randoms "sort_list"
+                pure (Just (InitList randoms)) ] }
+
+foldp (ListUpdated changes) s = { state : s { 
+    list = (foldr applyChange s.list changes) 
+  }, effects : [do 
+                _ <- liftEff $ log (show changes)
+                pure Nothing]}
+
+foldp (InitList list) s = { state: s { list = list }, effects: []}
+
+applyChange s c = 
+  let Just i = (index c 1) in
+  let Just j = (index c 0) in
+  let Just x = updateAt i j s in
+  x
+
 -- | Return markup from the state
 view :: State -> HTML Event
 view state =
