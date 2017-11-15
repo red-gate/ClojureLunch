@@ -2,7 +2,7 @@ module Main where
 
 import Phoenix
 
-import CSS (background, backgroundColor, color, green)
+import CSS (background, backgroundColor, color, green, rgb)
 import CSS.Transform (offsetLeft)
 import Control.Monad.Eff (Eff, forE)
 import Control.Monad.Eff.Class (liftEff)
@@ -16,15 +16,21 @@ import DOM.Event.MouseEvent (MouseEvent, eventToMouseEvent, screenX, screenY, cl
 import DOM.HTML.Event.EventTypes (timeout)
 import DOM.HTML.HTMLElement (offsetTop)
 import DOM.Node.Node (parentElement)
-import Data.Array (index, updateAt)
+import Data.Array (foldMap, index, length, updateAt)
 import Data.Either (Either(..), either)
+import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Foreign (Foreign, toForeign, unsafeFromForeign)
 import Data.Function (apply)
 import Data.Identity (Identity(..))
-import Data.Maybe (Maybe(..))
+import Data.Int (toNumber)
+import Data.Maybe (Maybe(..), fromJust)
+import Data.Monoid (mempty)
 import Data.Traversable (foldr, traverse, traverse_)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (replicateA)
+import Graphics.Canvas (CANVAS, CanvasElement, Context2D, clearRect, getCanvasElementById, getContext2D)
+import Graphics.Drawing (Drawing, black, closed, fillColor, filled, rectangle, render, rotate, scale, shadow, shadowBlur, shadowColor, translate)
+import Partial.Unsafe (unsafePartial)
 import Prelude hiding (div,join)
 import Pux (CoreEffects, EffModel, start)
 import Pux.DOM.Events (DOMEvent, onChange, onClick, onMouseMove, targetValue)
@@ -36,24 +42,27 @@ import Signal.Channel as Sig
 import Text.Smolder.HTML (Html, button, canvas, div, input, li, span, ul)
 import Text.Smolder.HTML.Attributes (height, type', value, width, xmlns)
 import Text.Smolder.Markup (text, (#!), (!))
-
 -- | Start and render the app
 foreign import emptyJsObject :: Foreign
 
 type Coords = { x:: Int, y:: Int}
-type AppEffects eff = (channel :: CHANNEL, exception :: EXCEPTION, phoenix :: PHOENIX, console :: CONSOLE, random :: RANDOM  | eff)
+type AppEffects eff = (canvas :: CANVAS, channel :: CHANNEL, exception :: EXCEPTION, phoenix :: PHOENIX, console :: CONSOLE, random :: RANDOM  | eff)
 type State = { 
   msg :: String , 
   chan :: Channel, 
   sortChan :: Channel, 
   msgs :: Array String, 
   coords:: Coords,
-  list:: Array(Int)
+  list:: Array(Int),
+  ctx :: Context2D
 }
 
 
 main :: forall eff. Eff (AppEffects eff)  Unit
 main = do
+  mcanvas <- getCanvasElementById "canvas"
+  let canvas = unsafePartial (fromJust mcanvas)
+  ctx <- getContext2D canvas
 
   sigChannel <- Sig.channel SendMessage  
 
@@ -64,7 +73,6 @@ main = do
   on chan "new_message" (\c e m -> Sig.send sigChannel (MessageReceived ((unsafeFromForeign m).value) ))
   on chan "mouse_moved" (\c e m -> Sig.send sigChannel (MouseMoveReceived ((unsafeFromForeign m).value)))
   on sortChan "list_update" (\c e m -> Sig.send sigChannel (ListUpdated ((unsafeFromForeign m).value) ))
-  on sortChan "list_update" (\c e m -> Sig.send sigChannel (MessageReceived ((unsafeFromForeign m).value) ))
   p <- join chan
   p2 <- receive p "ok" (\p d -> log "Joined lobby")
 
@@ -72,7 +80,7 @@ main = do
   p2 <- receive p "ok" (\p d -> log "Joined sorter")
 
   app <- start
-    { initialState: {list: [], msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0} }
+    { initialState: {ctx: ctx, list: [], msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0} }
     , view
     , foldp
     , inputs: [ subscribe sigChannel ]
@@ -100,7 +108,7 @@ getMouseEvent e =
   where f _ = TextUpdated "foo" 
     
 -- | Return a new state (and effects) from each event
-foldp :: ∀ fx. Event -> State -> EffModel State Event (random :: RANDOM, console :: CONSOLE, phoenix :: PHOENIX | fx )
+foldp :: ∀ fx. Event -> State -> EffModel State Event (canvas :: CANVAS, random :: RANDOM, console :: CONSOLE, phoenix :: PHOENIX | fx )
 foldp SendMessage s = { state: s { msg = "" }  , 
     effects: [ do 
                 _ <- liftEff $ sendMessage  s.chan s.msg "new_message"
@@ -123,19 +131,40 @@ foldp SortList s =
                 _ <- liftEff $ sendMessage s.sortChan randoms "sort_list"
                 pure (Just (InitList randoms)) ] }
 
-foldp (ListUpdated changes) s = { state : s { 
-    list = (foldr applyChange s.list changes) 
+foldp (ListUpdated changes) s = let newList = (foldr applyChange s.list changes) in 
+  { state : s { 
+    list = newList
   }, effects : [do 
-                _ <- liftEff $ log (show changes)
-                pure Nothing]}
+                _ <- liftEff $ log ("Changes: " <> show changes)
+                _ <- liftEff $ log ("Old: " <> show s.list)
+                _ <- liftEff $ log ("New: " <> show newList)
+                _ <- liftEff $ drawGraph s.ctx newList
+                pure (Just $ MessageReceived $ show newList)]}
 
 foldp (InitList list) s = { state: s { list = list }, effects: []}
 
-applyChange s c = 
-  let Just i = (index c 1) in
-  let Just j = (index c 0) in
-  let Just x = updateAt i j s in
+applyChange :: Array Int -> Array Int -> Array Int
+applyChange c s = unsafePartial $
+  let Just value = (index c 0) in
+  let Just index = (index c 1) in
+  let Just x = updateAt index value s  in
   x
+
+drawGraph :: forall t83.                 
+  Context2D                 
+  -> Array Int              
+     -> Eff                 
+          ( canvas :: CANVAS
+          | t83             
+          )                 
+          Unit
+drawGraph ctx list = do 
+  _ <- clearRect ctx {x: 0.0, y: 0.0, w: 1000.0, h: 1000.0} 
+  render ctx (drawList list)
+
+drawList :: Array Int -> Drawing
+drawList ls = scale 3.0 3.0 $ foldMapWithIndex valueToLine ls
+  where valueToLine i x =  filled (fillColor (rgb 200 200 34)) (rectangle (toNumber i) 0.0 1.0 $ (toNumber x) )
 
 -- | Return markup from the state
 view :: State -> HTML Event
@@ -147,37 +176,3 @@ view state =
     div do
       ul do
         traverse_ (\x -> li $ text x) state.msgs 
-    canvas ! width (show (state.coords.x + 30)) ! height (show (state.coords.y - 5)) ! style 
-      do
-        backgroundColor green
-      #! onMouseMove (\x -> MouseMoved x) $ 
-      do pure unit
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
