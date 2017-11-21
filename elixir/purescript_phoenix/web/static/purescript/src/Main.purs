@@ -127,7 +127,7 @@ foldp (MouseMoveReceived c) s = { state: s { coords = c } , effects: [do
 foldp SortList s = 
     { state: s   , 
     effects: [ do 
-                randoms :: Array Int <- liftEff $ replicateA 20 (randomInt 1 4)
+                randoms :: Array Int <- liftEff $ replicateA 20 (randomInt 1 20)
                 _ <- liftEff $ sendMessage s.sortChan randoms "sort_list"
                 pure (Just (InitList randoms)) ] }
 
@@ -164,7 +164,7 @@ drawGraph ctx list = do
 
 drawList :: Array Int -> Drawing
 drawList ls = scale 3.0 3.0 $ foldMapWithIndex valueToLine ls
-  where valueToLine i x =  filled (fillColor (rgb 200 200 34)) (rectangle (toNumber i) 0.0 1.0 $ (toNumber x) )
+  where valueToLine i x =  filled (fillColor (rgb 200 (200 - (10*x)) 34)) (rectangle (toNumber i) 0.0 1.0 $ (toNumber x) )
 
 -- | Return markup from the state
 view :: State -> HTML Event
