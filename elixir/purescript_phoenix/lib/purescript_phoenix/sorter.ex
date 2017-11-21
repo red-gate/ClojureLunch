@@ -21,7 +21,7 @@ defmodule Sorter do
 
     def init({indexedList,overseer}) when is_pid(overseer) and is_list(indexedList) do
       # start a process which will report back to this one when it's done
-      send(overseer, {:update, indexedList})      
+      updateOverseer(indexedList, overseer)
       start(indexedList, overseer, :report)
       {:ok, overseer} # don't need any state
     end
@@ -100,6 +100,7 @@ defmodule Sorter do
     end
 
     defp updateOverseer(indexedList, overseer) do
+      :timer.sleep(500) # stupid pointless sleep
       send(overseer, {:update, indexedList})
       indexedList
     end
