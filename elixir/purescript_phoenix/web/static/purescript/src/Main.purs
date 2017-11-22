@@ -22,10 +22,10 @@ import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Foreign (Foreign, toForeign, unsafeFromForeign)
 import Data.Function (apply)
 import Data.Identity (Identity(..))
-import Data.Int (fromString, toNumber)
+import Data.Int (floor, fromString, toNumber)
 import Data.List ((!!), (:))
-import Data.List as L
 import Data.List (List, head, singleton)
+import Data.List as L
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Monoid (mempty)
 import Data.Traversable (foldr, traverse, traverse_)
@@ -58,7 +58,8 @@ type State = {
   coords:: Coords,
   list:: List (Array Int),
   ctx :: Context2D,
-  graphPos :: Int
+  graphPos :: Int,
+  listSize :: Int
 }
 
 
@@ -84,7 +85,7 @@ main = do
   p2 <- receive p "ok" (\p d -> log "Joined sorter")
 
   app <- start
-    { initialState: {ctx: ctx, list: mempty, msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0}, graphPos: 0 }
+    { initialState: {listSize: 10, ctx: ctx, list: mempty, msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0}, graphPos: 0 }
     , view
     , foldp
     , inputs: [ subscribe sigChannel ]
@@ -100,7 +101,7 @@ sendMessage chan msg t =  do
   pure unit
 
   
-data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MouseMoveReceived Coords | SortList | ListUpdated (Array (Array Int)) | InitList (Array Int) | Draw (Array Int) | ScrollCanvas Int
+data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MouseMoveReceived Coords | SortList | ListUpdated (Array (Array Int)) | InitList (Array Int) | Draw (Array Int) | ScrollCanvas Int | ListSizeUpdated Int
 
 getMouseEvent :: DOMEvent -> Maybe ({x :: Int, y :: Int})
 getMouseEvent e = 
@@ -126,6 +127,7 @@ foldp (ScrollCanvas p) s =
         pure Nothing
     ] }
 foldp (TextUpdated msg) s = { state: s { msg = msg }, effects: [] }
+foldp (ListSizeUpdated msg) s = { state: s { listSize = max 1 msg }, effects: [] }
 foldp (MessageReceived msg) s = { state: s { msgs = (append s.msgs [msg])}, effects: [] }
 foldp (MouseMoved event) s = let pos = getMouseEvent event in {state: s, effects: [do 
                 case pos of 
@@ -139,7 +141,7 @@ foldp (MouseMoveReceived c) s = { state: s { coords = c } , effects: [do
 foldp SortList s = 
     { state: s   , 
     effects: [ do 
-                randoms :: Array Int <- liftEff $ replicateA 100 (randomInt 1 100)
+                randoms :: Array Int <- liftEff $ replicateA s.listSize (randomInt 1 s.listSize)
                 _ <- liftEff $ sendMessage s.sortChan randoms "sort_list"
                 pure (Just (InitList randoms)) ] }
 
@@ -166,7 +168,7 @@ applyChange c s = unsafePartial $
   x
 
 drawGraph :: forall t83.                 
-  Context2D                 
+  Context2D             
   -> Array Int              
      -> Eff                 
           ( canvas :: CANVAS
@@ -174,18 +176,20 @@ drawGraph :: forall t83.
           )                 
           Unit
 drawGraph ctx list = do 
+  let scf = 100.0 / (toNumber $ length list)
   _ <- clearRect ctx {x: 0.0, y: 0.0, w: 1000.0, h: 1000.0} 
-  render ctx (drawList list)
+  render ctx (scale scf scf $ drawList (2 * (floor scf)) list )
 
-drawList :: Array Int -> Drawing
-drawList ls = scale 1.0 1.0 $ foldMapWithIndex valueToLine ls
-  where valueToLine i x =  filled (fillColor (rgb 200 (200 - (2*x)) 34)) (rectangle (toNumber i) 0.0 1.0 $ (toNumber x) )
+drawList :: Int -> Array Int -> Drawing
+drawList cf ls = foldMapWithIndex valueToLine ls
+  where valueToLine i x =  filled (fillColor (rgb 200 (200 - (cf *x)) 34)) (rectangle (toNumber i) 0.0 1.0 $ (toNumber x) )
 
 
 -- | Return markup from the state
 view :: State -> HTML Event
 view state =
   div do
+    input ! type' "number" ! value (show state.listSize) #! onChange (\x -> ListSizeUpdated (unsafePartial$ fromJust$ fromString(targetValue x) ) )
     button #! onClick (const SortList) $ text "Sort List"
     button #! onClick (const SendMessage) $ text "Send Message"
     input ! type' "number" ! value (show state.graphPos) #! onChange (\x -> ScrollCanvas (unsafePartial$ fromJust$ fromString(targetValue x) ) )
@@ -197,6 +201,7 @@ view state =
       ul do
         traverse_ (\x -> li #! onMouseOver (const $ Draw x) $ text (show x)) state.list 
     
+
 
 
 
