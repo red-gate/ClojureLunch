@@ -22,7 +22,10 @@ import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Foreign (Foreign, toForeign, unsafeFromForeign)
 import Data.Function (apply)
 import Data.Identity (Identity(..))
-import Data.Int (toNumber)
+import Data.Int (fromString, toNumber)
+import Data.List ((!!), (:))
+import Data.List as L
+import Data.List (List, head, singleton)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Monoid (mempty)
 import Data.Traversable (foldr, traverse, traverse_)
@@ -33,7 +36,7 @@ import Graphics.Drawing (Drawing, black, closed, fillColor, filled, rectangle, r
 import Partial.Unsafe (unsafePartial)
 import Prelude hiding (div,join)
 import Pux (CoreEffects, EffModel, start)
-import Pux.DOM.Events (DOMEvent, onChange, onClick, onMouseMove, targetValue)
+import Pux.DOM.Events (DOMEvent, onChange, onClick, onMouseMove, onMouseOver, targetValue)
 import Pux.DOM.HTML (HTML)
 import Pux.DOM.HTML.Attributes (style)
 import Pux.Renderer.React (renderToDOM)
@@ -53,8 +56,9 @@ type State = {
   sortChan :: Channel, 
   msgs :: Array String, 
   coords:: Coords,
-  list:: Array(Int),
-  ctx :: Context2D
+  list:: List (Array Int),
+  ctx :: Context2D,
+  graphPos :: Int
 }
 
 
@@ -80,7 +84,7 @@ main = do
   p2 <- receive p "ok" (\p d -> log "Joined sorter")
 
   app <- start
-    { initialState: {ctx: ctx, list: [], msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0} }
+    { initialState: {ctx: ctx, list: mempty, msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0}, graphPos: 0 }
     , view
     , foldp
     , inputs: [ subscribe sigChannel ]
@@ -96,7 +100,7 @@ sendMessage chan msg t =  do
   pure unit
 
   
-data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MouseMoveReceived Coords | SortList | ListUpdated (Array (Array Int)) | InitList (Array Int)
+data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MouseMoveReceived Coords | SortList | ListUpdated (Array (Array Int)) | InitList (Array Int) | Draw (Array Int) | ScrollCanvas Int
 
 getMouseEvent :: DOMEvent -> Maybe ({x :: Int, y :: Int})
 getMouseEvent e = 
@@ -113,6 +117,14 @@ foldp SendMessage s = { state: s { msg = "" }  ,
     effects: [ do 
                 _ <- liftEff $ sendMessage  s.chan s.msg "new_message"
                 pure Nothing] }
+foldp (ScrollCanvas p) s =
+  let pos = max 0 $min p $L.length s.list - 1 
+  in
+    { state: s { graphPos = pos }, effects: [
+      do 
+        _ <- liftEff $ drawGraph s.ctx $unsafePartial fromJust (s.list !! pos) 
+        pure Nothing
+    ] }
 foldp (TextUpdated msg) s = { state: s { msg = msg }, effects: [] }
 foldp (MessageReceived msg) s = { state: s { msgs = (append s.msgs [msg])}, effects: [] }
 foldp (MouseMoved event) s = let pos = getMouseEvent event in {state: s, effects: [do 
@@ -127,21 +139,24 @@ foldp (MouseMoveReceived c) s = { state: s { coords = c } , effects: [do
 foldp SortList s = 
     { state: s   , 
     effects: [ do 
-                randoms :: Array Int <- liftEff $ replicateA 20 (randomInt 1 20)
+                randoms :: Array Int <- liftEff $ replicateA 100 (randomInt 1 100)
                 _ <- liftEff $ sendMessage s.sortChan randoms "sort_list"
                 pure (Just (InitList randoms)) ] }
 
-foldp (ListUpdated changes) s = let newList = (foldr applyChange s.list changes) in 
+foldp (ListUpdated changes) s = let newList = (foldr applyChange (unsafePartial $ fromJust $ head s.list) changes) 
+  in 
   { state : s { 
-    list = newList
-  }, effects : [do 
-                _ <- liftEff $ log ("Changes: " <> show changes)
-                _ <- liftEff $ log ("Old: " <> show s.list)
-                _ <- liftEff $ log ("New: " <> show newList)
-                _ <- liftEff $ drawGraph s.ctx newList
-                pure (Just $ MessageReceived $ show newList)]}
+    list = newList : s.list
+  }, effects: [do 
+    _ <- liftEff $ drawGraph s.ctx newList
+    pure Nothing
+  ]}
 
-foldp (InitList list) s = { state: s { list = list }, effects: []}
+foldp (InitList list) s = { state: s { list = singleton list }, effects: []}
+foldp (Draw l) s = {state: s, effects: [do 
+    _ <- liftEff $ drawGraph s.ctx l
+    pure Nothing
+  ]}
 
 applyChange :: Array Int -> Array Int -> Array Int
 applyChange c s = unsafePartial $
@@ -163,8 +178,9 @@ drawGraph ctx list = do
   render ctx (drawList list)
 
 drawList :: Array Int -> Drawing
-drawList ls = scale 3.0 3.0 $ foldMapWithIndex valueToLine ls
-  where valueToLine i x =  filled (fillColor (rgb 200 (200 - (10*x)) 34)) (rectangle (toNumber i) 0.0 1.0 $ (toNumber x) )
+drawList ls = scale 1.0 1.0 $ foldMapWithIndex valueToLine ls
+  where valueToLine i x =  filled (fillColor (rgb 200 (200 - (2*x)) 34)) (rectangle (toNumber i) 0.0 1.0 $ (toNumber x) )
+
 
 -- | Return markup from the state
 view :: State -> HTML Event
@@ -172,7 +188,19 @@ view state =
   div do
     button #! onClick (const SortList) $ text "Sort List"
     button #! onClick (const SendMessage) $ text "Send Message"
+    input ! type' "number" ! value (show state.graphPos) #! onChange (\x -> ScrollCanvas (unsafePartial$ fromJust$ fromString(targetValue x) ) )
     input ! type' "text" ! value state.msg #! onChange (\x -> TextUpdated (targetValue x) )
     div do
       ul do
         traverse_ (\x -> li $ text x) state.msgs 
+    div do
+      ul do
+        traverse_ (\x -> li #! onMouseOver (const $ Draw x) $ text (show x)) state.list 
+    
+
+
+
+
+
+
+
