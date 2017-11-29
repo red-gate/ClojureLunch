@@ -33,11 +33,12 @@ import Data.Tuple (Tuple(..))
 import Data.Unfoldable (replicateA)
 import Graphics.Canvas (CANVAS, CanvasElement, Context2D, clearRect, getCanvasElementById, getContext2D)
 import Graphics.Drawing (Drawing, black, closed, fillColor, filled, rectangle, render, rotate, scale, shadow, shadowBlur, shadowColor, translate)
+import Messaging as Chat
 import Partial.Unsafe (unsafePartial)
 import Prelude hiding (div,join)
 import Pux (CoreEffects, EffModel, start)
 import Pux.DOM.Events (DOMEvent, onChange, onClick, onMouseMove, onMouseOver, targetValue)
-import Pux.DOM.HTML (HTML)
+import Pux.DOM.HTML (HTML, mapEvent)
 import Pux.DOM.HTML.Attributes (style)
 import Pux.Renderer.React (renderToDOM)
 import Signal.Channel (CHANNEL, subscribe)
@@ -45,16 +46,15 @@ import Signal.Channel as Sig
 import Text.Smolder.HTML (Html, button, canvas, div, input, li, span, ul)
 import Text.Smolder.HTML.Attributes (height, type', value, width, xmlns)
 import Text.Smolder.Markup (text, (#!), (!))
+
 -- | Start and render the app
 foreign import emptyJsObject :: Foreign
 
 type Coords = { x:: Int, y:: Int}
 type AppEffects eff = (canvas :: CANVAS, channel :: CHANNEL, exception :: EXCEPTION, phoenix :: PHOENIX, console :: CONSOLE, random :: RANDOM  | eff)
 type State = { 
-  msg :: String , 
-  chan :: Channel, 
-  sortChan :: Channel, 
-  msgs :: Array String, 
+  chatState :: Chat.State,
+  sortChan :: Channel,
   coords:: Coords,
   list:: List (Array Int),
   ctx :: Context2D,
@@ -69,14 +69,13 @@ main = do
   let canvas = unsafePartial (fromJust mcanvas)
   ctx <- getContext2D canvas
 
-  sigChannel <- Sig.channel SendMessage  
+  sigChannel <- Sig.channel ( ChatEvent $  Chat.SendMessage)
 
   sock <- newSocket "/socket" defaultSocketOptions
   connect sock
   chan <- channel sock ("room:lobby") emptyJsObject
   sortChan <- channel sock ("sorter:all") emptyJsObject
-  on chan "new_message" (\c e m -> Sig.send sigChannel (MessageReceived ((unsafeFromForeign m).value) ))
-  on chan "mouse_moved" (\c e m -> Sig.send sigChannel (MouseMoveReceived ((unsafeFromForeign m).value)))
+  on chan "new_message" (\c e m -> Sig.send sigChannel (ChatEvent $ Chat.MessageReceived ((unsafeFromForeign m).value) ))
   on sortChan "list_update" (\c e m -> Sig.send sigChannel (ListUpdated ((unsafeFromForeign m).value) ))
   p <- join chan
   p2 <- receive p "ok" (\p d -> log "Joined lobby")
@@ -85,7 +84,7 @@ main = do
   p2 <- receive p "ok" (\p d -> log "Joined sorter")
 
   app <- start
-    { initialState: {listSize: 10, ctx: ctx, list: mempty, msg: "Hello world", chan: chan, sortChan : sortChan,  msgs: ["one", "two"], coords: { x: 0, y: 0}, graphPos: 0 }
+    { initialState: {chatState: Chat.initial chan,  listSize: 10, ctx: ctx, list: mempty, sortChan : sortChan,  coords: { x: 0, y: 0}, graphPos: 0 }
     , view
     , foldp
     , inputs: [ subscribe sigChannel ]
@@ -101,7 +100,7 @@ sendMessage chan msg t =  do
   pure unit
 
   
-data Event = TextUpdated String | SendMessage | MessageReceived String | MouseMoved DOMEvent | MouseMoveReceived Coords | SortList | ListUpdated (Array (Array Int)) | InitList (Array Int) | Draw (Array Int) | ScrollCanvas Int | ListSizeUpdated Int
+data Event = ChatEvent Chat.Event  | SortList | ListUpdated (Array (Array Int)) | InitList (Array Int) | Draw (Array Int) | ScrollCanvas Int | ListSizeUpdated Int
 
 getMouseEvent :: DOMEvent -> Maybe ({x :: Int, y :: Int})
 getMouseEvent e = 
@@ -110,14 +109,13 @@ getMouseEvent e =
       pure $ {x : (clientX me), y :((clientY me))}
   
 
-  where f _ = TextUpdated "foo" 
+  where f _ = Chat.TextUpdated "foo" 
     
 -- | Return a new state (and effects) from each event
 foldp :: ∀ fx. Event -> State -> EffModel State Event (canvas :: CANVAS, random :: RANDOM, console :: CONSOLE, phoenix :: PHOENIX | fx )
-foldp SendMessage s = { state: s { msg = "" }  , 
-    effects: [ do 
-                _ <- liftEff $ sendMessage  s.chan s.msg "new_message"
-                pure Nothing] }
+foldp (ChatEvent event) s =
+   let c = Chat.foldp event s.chatState
+   in {state: s {chatState = c.state},  effects: ((<$>)((<$>)ChatEvent) ) <$> c.effects}   
 foldp (ScrollCanvas p) s =
   let pos = max 0 $min p $L.length s.list - 1 
   in
@@ -126,20 +124,9 @@ foldp (ScrollCanvas p) s =
         _ <- liftEff $ drawGraph s.ctx $unsafePartial fromJust (s.list !! pos) 
         pure Nothing
     ] }
-foldp (TextUpdated msg) s = { state: s { msg = msg }, effects: [] }
 foldp (ListSizeUpdated msg) s = { state: s { listSize = max 1 msg }, effects: [] }
-foldp (MessageReceived msg) s = { state: s { msgs = (append s.msgs [msg])}, effects: [] }
-foldp (MouseMoved event) s = let pos = getMouseEvent event in {state: s, effects: [do 
-                case pos of 
-                  Just coords -> do 
-                    _ <- liftEff $ sendMessage  s.chan coords "mouse_moved"
-                    pure Nothing
-                  Nothing -> pure Nothing]}
-foldp (MouseMoveReceived c) s = { state: s { coords = c } , effects: [do 
-                _ <- liftEff $ log (show c.x)
-                pure Nothing]}
 foldp SortList s = 
-    { state: s   , 
+    { state: s  , 
     effects: [ do 
                 randoms :: Array Int <- liftEff $ replicateA s.listSize (randomInt 1 s.listSize)
                 _ <- liftEff $ sendMessage s.sortChan randoms "sort_list"
@@ -191,16 +178,12 @@ view state =
   div do
     input ! type' "number" ! value (show state.listSize) #! onChange (\x -> ListSizeUpdated (unsafePartial$ fromJust$ fromString(targetValue x) ) )
     button #! onClick (const SortList) $ text "Sort List"
-    button #! onClick (const SendMessage) $ text "Send Message"
     input ! type' "number" ! value (show state.graphPos) #! onChange (\x -> ScrollCanvas (unsafePartial$ fromJust$ fromString(targetValue x) ) )
-    input ! type' "text" ! value state.msg #! onChange (\x -> TextUpdated (targetValue x) )
-    div do
-      ul do
-        traverse_ (\x -> li $ text x) state.msgs 
     div do
       ul do
         traverse_ (\x -> li #! onMouseOver (const $ Draw x) $ text (show x)) state.list 
     
+    mapEvent ChatEvent $ Chat.view (state.chatState)
 
 
 
