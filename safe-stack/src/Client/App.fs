@@ -8,28 +8,39 @@ module R = Fable.Helpers.React
 open Fable.PowerPack.Fetch
 
 
-type Model = int option
+type Model = (int option * string list)
 
 type Msg = Increment | Decrement | Init of Result<int, exn>
-
+          | InitBag | ItemSelected of string
 let init () = 
-  let model = None
-  let cmd = 
+  let model = None, ["Blag"]
+  let cmdInt = 
     Cmd.ofPromise 
       (fetchAs<int> "/api/init") 
       [] 
       (Ok >> Init) 
       (Error >> Init)
+  let cmdBag = 
+    Cmd.ofPromise 
+      (fetchAs<int> "/api/init") 
+      [] 
+      (Ok >> Init) 
+      (Error >> Init) 
+  let cmd = cmdInt
   model, cmd
+let removeItemFromBag item bag = List.filter (fun x -> x <> item) bag
 
 let update msg (model : Model) =
   let model' =
     match model,  msg with
-    | Some x, Increment -> Some (x + 2)
-    | Some x, Decrement -> Some (x - 1)
-    | None, Init (Ok x) -> Some x
-    | _ -> None
+    | (Some x, bar), Increment -> Some (x + 2), bar
+    | (Some x, bar), Decrement -> Some (x - 1) , bar
+    | (None, bar), Init (Ok x) -> (Some x, bar)
+    | (i, _), InitBag -> (i, ["FooBag"]) 
+    | (i, bag), ItemSelected (item) -> (i, removeItemFromBag item bag) 
+    | _ -> None, []
   model', Cmd.none
+
 
 let safeComponents =
   let intersperse sep ls =
@@ -56,15 +67,21 @@ let show = function
 | Some x -> string x
 | None -> "Loading..."
 
+let viewBagItem dispatch item  = R.li [] [
+  R.str item
+  R.button [OnClick (fun _ -> dispatch (ItemSelected item))] [R.str "Add to bag"]
+  ]
 
-let view model dispatch =
+let view (intmodel, bag) dispatch =
   R.div []
-    [ R.h1 [] [ R.str "SAFE Template" ]
+    [ R.h1 [] [ R.str "Super market" ]
       R.p  [] [ R.str "The initial counter is fetched from server" ]
       R.p  [] [ R.str "Press buttons to manipulate counter:" ]
       R.button [ OnClick (fun _ -> dispatch Decrement) ] [ R.str "-" ]
-      R.div [] [ R.str (show model) ]
+      R.div [] [ R.str (show intmodel) ]
       R.button [ OnClick (fun _ -> dispatch Increment) ] [ R.str "+" ]
+      R.br []
+      R.ul [] (List.map (viewBagItem dispatch) bag)
       safeComponents ]
   
 #if DEBUG

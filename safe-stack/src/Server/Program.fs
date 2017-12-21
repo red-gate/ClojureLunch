@@ -22,6 +22,10 @@ let hello =
   "Hello world"
   |> Successful.OK
 
+let getItems =
+  System.String.Join(", ", ["fruit1", "fruit2"])
+  |> Successful.OK
+
 let mutable randomizer = System.Random()
 
 let mutable count = 1
@@ -40,6 +44,7 @@ let sleep milliseconds message: WebPart =
 
 let webPart =
   choose [
+    Filters.path "/api/elements" >=> getItems
     Filters.path "/api/hello" >=> hello
     Filters.path "/api/init" >=> init
     Filters.path "/api/random" >=> sleep 3000  "haahha"
