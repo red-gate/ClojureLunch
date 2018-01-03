@@ -4,7 +4,8 @@ open System.Net
 
 open Suave
 open Suave.Operators
-
+open Suave.Json
+open System.Runtime.Serialization
 let path = Path.Combine("..","Client") |> Path.GetFullPath 
 let port = 8085us
 
@@ -17,6 +18,14 @@ let init =
   42
   |> string
   |> Successful.OK
+
+let items =
+  ["hello"; "clive"]
+  |> List.toArray
+  |> toJson
+  |> Utils.ASCII.toString
+  |> Successful.OK
+
 
 let hello =
   "Hello world"
@@ -47,6 +56,7 @@ let webPart =
     Filters.path "/api/elements" >=> getItems
     Filters.path "/api/hello" >=> hello
     Filters.path "/api/init" >=> init
+    Filters.path "/api/items" >=> items
     Filters.path "/api/random" >=> sleep 3000  "haahha"
     Files.browseHome
   ]

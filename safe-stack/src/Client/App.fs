@@ -10,7 +10,7 @@ open Fable.PowerPack.Fetch
 
 type Model = (int option * string list)
 
-type Msg = Increment | Decrement | Init of Result<int, exn>
+type Msg = Increment | Decrement | Init of Result<int, exn> | InitItems of Result<string list, exn>
           | InitBag | ItemSelected of string
 let init () = 
   let model = None, ["Blag"]
@@ -20,14 +20,19 @@ let init () =
       [] 
       (Ok >> Init) 
       (Error >> Init)
+
   let cmdBag = 
     Cmd.ofPromise 
-      (fetchAs<int> "/api/init") 
+      (fetchAs<string list> "/api/items") 
       [] 
-      (Ok >> Init) 
-      (Error >> Init) 
+      (Ok >> InitItems) 
+      (Error >> InitItems) 
   let cmd = cmdInt
-  model, cmd
+
+  model, Cmd.batch(seq {
+    yield cmdInt
+    yield cmdBag })
+
 let removeItemFromBag item bag = List.filter (fun x -> x <> item) bag
 
 let update msg (model : Model) =
@@ -36,6 +41,7 @@ let update msg (model : Model) =
     | (Some x, bar), Increment -> Some (x + 2), bar
     | (Some x, bar), Decrement -> Some (x - 1) , bar
     | (None, bar), Init (Ok x) -> (Some x, bar)
+    | (i, _), InitItems (Ok x) -> (i, x)
     | (i, _), InitBag -> (i, ["FooBag"]) 
     | (i, bag), ItemSelected (item) -> (i, removeItemFromBag item bag) 
     | _ -> None, []
@@ -67,9 +73,10 @@ let show = function
 | Some x -> string x
 | None -> "Loading..."
 
-let viewBagItem dispatch item  = R.li [] [
-  R.str item
-  R.button [OnClick (fun _ -> dispatch (ItemSelected item))] [R.str "Add to bag"]
+let viewBagItem dispatch item  = 
+  R.li [] [
+    R.str item
+    R.button [OnClick (fun _ -> dispatch (ItemSelected item))] [R.str "Add to bag"]
   ]
 
 let view (intmodel, bag) dispatch =
