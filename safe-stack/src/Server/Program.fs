@@ -5,7 +5,7 @@ open System.Net
 open Suave
 open Suave.Operators
 open Suave.Json
-open System.Runtime.Serialization
+
 let path = Path.Combine("..","Client") |> Path.GetFullPath 
 let port = 8085us
 
@@ -23,9 +23,7 @@ let items =
   ["hello"; "clive"]
   |> List.toArray
   |> toJson
-  |> Utils.ASCII.toString
-  |> Successful.OK
-
+  |> Successful.ok
 
 let hello =
   "Hello world"
