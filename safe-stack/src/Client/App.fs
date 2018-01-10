@@ -10,10 +10,15 @@ open Fable.PowerPack.Fetch
 
 type Model = (int option * string list)
 
-type Msg = Increment | Decrement | Init of Result<int, exn> | InitItems of Result<string list, exn>
-          | InitBag | ItemSelected of string
+type Msg = Increment 
+          | Decrement 
+          | Init of Result<int, exn> 
+          | InitItems of Result<string list, exn>
+          | ItemSelected of string
 let init () = 
+  
   let model = None, ["Blag"]
+
   let cmdInt = 
     Cmd.ofPromise 
       (fetchAs<int> "/api/init") 
@@ -27,7 +32,6 @@ let init () =
       [] 
       (Ok >> InitItems) 
       (Error >> InitItems) 
-  let cmd = cmdInt
 
   model, Cmd.batch(seq {
     yield cmdInt
@@ -42,7 +46,6 @@ let update msg (model : Model) =
     | (Some x, bar), Decrement -> Some (x - 1) , bar
     | (None, bar), Init (Ok x) -> (Some x, bar)
     | (i, _), InitItems (Ok x) -> (i, x)
-    | (i, _), InitBag -> (i, ["FooBag"]) 
     | (i, bag), ItemSelected (item) -> (i, removeItemFromBag item bag) 
     | _ -> None, []
   model', Cmd.none
