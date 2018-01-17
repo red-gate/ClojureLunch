@@ -6,6 +6,8 @@ open Suave
 open Suave.Operators
 open Suave.Json
 
+open Database
+
 let path = Path.Combine("..","Client") |> Path.GetFullPath 
 let port = 8085us
 
@@ -20,8 +22,9 @@ let init =
   |> Successful.OK
 
 let items =
-  ["hello"; "clive"]
-  |> List.toArray
+  Database.getItems()
+  //["hello"; "clive"]
+  |> Seq.toArray
   |> toJson
   |> Successful.ok
 

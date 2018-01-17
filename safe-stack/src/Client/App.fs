@@ -8,6 +8,7 @@ module R = Fable.Helpers.React
 open Fable.PowerPack.Fetch
 
 
+
 type Model = (int option * string list)
 
 type Msg = Increment 
@@ -37,18 +38,32 @@ let init () =
     yield cmdInt
     yield cmdBag })
 
+
+
 let removeItemFromBag item bag = List.filter (fun x -> x <> item) bag
 
+let addToBag counter item bag = 
+  let cmdAdd = 
+      Cmd.ofPromise 
+        (postRecord "/api/addToBag" item) 
+        [] 
+        (Ok >> fun _ _ -> ()) 
+        (Error >> fun _ _ -> ())
+
+  let cmd = seq{ yield cmdAdd } |> Cmd.batch 
+
+  (counter, removeItemFromBag item bag), cmd
+
 let update msg (model : Model) =
-  let model' =
+  let (model', cmd') =
     match model,  msg with
-    | (Some x, bar), Increment -> Some (x + 2), bar
-    | (Some x, bar), Decrement -> Some (x - 1) , bar
-    | (None, bar), Init (Ok x) -> (Some x, bar)
-    | (i, _), InitItems (Ok x) -> (i, x)
-    | (i, bag), ItemSelected (item) -> (i, removeItemFromBag item bag) 
-    | _ -> None, []
-  model', Cmd.none
+    | (Some x, bar), Increment -> (Some (x + 2), bar), Cmd.none
+    | (Some x, bar), Decrement -> (Some (x - 1) , bar), Cmd.none
+    | (None, bar), Init (Ok x) -> ((Some x, bar)), Cmd.none
+    | (i, _), InitItems (Ok x) -> ((i, x)), Cmd.none
+    | (i, bag), ItemSelected (item) -> addToBag i item bag
+    | _ -> (None, []), Cmd.none
+  model', cmd'
 
 
 let safeComponents =
