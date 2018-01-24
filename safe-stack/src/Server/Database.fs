@@ -21,13 +21,13 @@ module Database =
      }
      |> Seq.toList
 
-    let addToBag(item) = 
+    let addToBag(item :string ) = 
      use foo = new SqlConnection("server=dev-clive2\sql2014; initial catalog=StackItems; Integrated Security=SSPI;")
      foo.Open()
      
      use command = foo.CreateCommand()
 
      command.CommandText <- "INSERT INTO bag VALUES (@p0)"
-     command.Parameters.Add(SqlParameter("p0", item))
+     command.Parameters.Add(SqlParameter("p0", item)) |> ignore
 
      command.ExecuteNonQuery()

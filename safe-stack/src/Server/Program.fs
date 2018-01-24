@@ -50,7 +50,12 @@ let sleep milliseconds message: WebPart =
       //do count <- count + 1
       //return! Successful.OK (count |> string) x
     //}
-    
+   
+let addToBag : WebPart = 
+  fun (x : HttpContext) ->
+    let field, value = x.request.form.[0]
+    Database.addToBag field |> ignore
+    Successful.OK "toby" x
 
 let webPart =
   choose [
@@ -59,6 +64,7 @@ let webPart =
     Filters.path "/api/init" >=> init
     Filters.path "/api/items" >=> items
     Filters.path "/api/random" >=> sleep 3000  "haahha"
+    Filters.path "/api/addToBag" >=> addToBag
     Files.browseHome
   ]
 

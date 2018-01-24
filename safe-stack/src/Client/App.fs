@@ -16,6 +16,7 @@ type Msg = Increment
           | Init of Result<int, exn> 
           | InitItems of Result<string list, exn>
           | ItemSelected of string
+          | AddedToBagMaybe of Result<Response, exn>
 let init () = 
   
   let model = None, ["Blag"]
@@ -47,8 +48,8 @@ let addToBag counter item bag =
       Cmd.ofPromise 
         (postRecord "/api/addToBag" item) 
         [] 
-        (Ok >> fun _ _ -> ()) 
-        (Error >> fun _ _ -> ())
+        (Ok >> AddedToBagMaybe) 
+        (Error >> AddedToBagMaybe)
 
   let cmd = seq{ yield cmdAdd } |> Cmd.batch 
 
@@ -62,7 +63,8 @@ let update msg (model : Model) =
     | (None, bar), Init (Ok x) -> ((Some x, bar)), Cmd.none
     | (i, _), InitItems (Ok x) -> ((i, x)), Cmd.none
     | (i, bag), ItemSelected (item) -> addToBag i item bag
-    | _ -> (None, []), Cmd.none
+    | _, AddedToBagMaybe (Ok _) -> model, Cmd.none
+    | _ -> (None, []), Cmd.none 
   model', cmd'
 
 
