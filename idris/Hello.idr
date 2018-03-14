@@ -1,7 +1,7 @@
 module Main
 
 import Data.Fin
--- import Data.Vect
+import Data.Vect
 
 main : IO ()
 main = putStrLn ?greeting
@@ -105,35 +105,41 @@ biggestTriangle (Rotate x y) = biggestTriangle y
 biggestTriangle (Translate x y z) = biggestTriangle z
 
 
-data PowerSource = Petrol | Pedal
+data PowerSource = Petrol | Pedal | Electric
 
 data Vehicle : PowerSource -> Type where
     Bicycle : Vehicle Pedal
     Car : (fuel : Nat) -> Vehicle Petrol
     Bus : (fuel : Nat) -> Vehicle Petrol
+    Unicycle : Vehicle Pedal
+    Motorcycle : (fuel : Nat) -> Vehicle Petrol
+    ECar : (charge : Nat) -> Vehicle Electric
 
 wheels : Vehicle power -> Nat
 wheels Bicycle = 2
 wheels (Car fuel) = 4
 wheels (Bus fuel) = 4
+wheels Unicycle = 1
+wheels (Motorcycle fuel) = 2
 
 refuel : Vehicle Petrol -> Vehicle Petrol
 refuel (Car fuel) = Car 100
 refuel (Bus fuel) = Bus 200
+refuel (Motorcycle fuel) = Motorcycle 30
 
-data Vect : Nat -> Type -> Type where
-    Nil : Vect Z a
-    (::) : (x : a) -> (xs : Vect k a) -> Vect (S k) a
-%name Vect xs, ys, zs
 
-append : Vect n elem -> Vect m elem -> Vect (n + m) elem
-append [] ys = ys
-append (x :: xs) ys = x :: append xs ys
+tryIndex : Integer -> Vect n a -> Maybe a
+tryIndex {n} x xs = case integerToFin x n of
+                         Nothing => Nothing
+                         (Just y) => Just(Data.Vect.index y xs)
 
-zip : Vect n a -> Vect n b -> Vect n (a, b)
-zip [] [] = []
-zip (x :: xs) (y :: ys) = (x, y) :: zip xs ys
 
-index : Fin n -> Vect n a -> a
-index FZ (x :: xs) = x
-index (FS x) (y :: xs) = index x xs
+vectTake : (x : Fin (S n)) -> Vect n a -> Vect (cast x) a
+vectTake FZ xs = []
+vectTake (FS x) (y :: xs) = y :: vectTake x xs
+
+sumEntries : Num a => (pos : Integer) -> Vect n a -> Vect n a -> Maybe a
+sumEntries {n} pos xs ys = 
+    case integerToFin pos n of
+        Nothing => Nothing
+        Just fin => Just $ index fin xs + index fin ys
