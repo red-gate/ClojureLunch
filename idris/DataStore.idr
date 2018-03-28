@@ -20,7 +20,12 @@ addToStore (MkData size items') newitem = MkData _ (addToData items')
     addToData [] = [newitem]
     addToData (item :: items) = item :: addToData items
 
+search : DataStore -> String -> (p ** Vect p String) 
+search store subs = Vect.filter (Strings.isInfixOf subs) (items store)
 
+searchResultToString : (p ** Vect p String) -> String
+searchResultToString (_ ** (x :: xs)) = (show x) ++ "\n"++ searchResultToString (_ ** xs)
+searchResultToString _ = ""
 
 sumInputs : Integer -> String -> Maybe (String, Integer)
 sumInputs x y = let v = cast y in
@@ -31,6 +36,8 @@ sumInputs x y = let v = cast y in
 data Command = 
     Add String
     | Get Integer
+    | Size
+    | Search String
     | Quit
 
 parseCommand : (cmd : String) -> (args : String) ->
@@ -39,7 +46,9 @@ parseCommand "add" str = Just (Add str)
 parseCommand "get" val = case all isDigit (unpack val) of
     False => Nothing
     True => Just (Get (cast val))
+parseCommand "size" "" = Just (Size)
 parseCommand "quit" "" = Just Quit
+parseCommand "search" str = Just (Search str)
 parseCommand _ _ = Nothing
 
 parse : (input : String) -> Maybe Command
@@ -59,6 +68,8 @@ processInput store inp
     Just (Get x) => case (tryIndex x (items store)) of
             Nothing => Just ("nope ", store)
             Just item => Just (item, store)
+    Just(Size) => Just(show (size store), store)
+    Just(Search x) => Just(show (search store x), store)
     Just Quit => Nothing
 
     
