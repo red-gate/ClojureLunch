@@ -143,3 +143,29 @@ sumEntries {n} pos xs ys =
     case integerToFin pos n of
         Nothing => Nothing
         Just fin => Just $ index fin xs + index fin ys
+
+
+printLength : IO ()
+printLength = do
+    x <- getLine 
+    y <- pure $ Prelude.Strings.length x 
+    putStrLn $ cast y  
+
+
+printLonger : IO()
+printLonger = getLine >>= (\first => getLine >>= (\second => 
+    let lfirst = length first
+        lsecond = length second in 
+            case lfirst>lsecond of
+                True => putStrLn first
+                False => putStrLn second
+    )) 
+
+-- printLonger = do
+--     first <- getLine
+--     second <- getLine
+--     let lfirst = Prelude.Strings.length first 
+--     let lsecond = Prelude.Strings.length second
+--     case lfirst>lsecond of
+--         True => putStrLn first
+--         False => putStrLn second
