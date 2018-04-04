@@ -20,11 +20,13 @@ addToStore (MkData size items') newitem = MkData _ (addToData items')
     addToData [] = [newitem]
     addToData (item :: items) = item :: addToData items
 
-search : DataStore -> String -> (p ** Vect p String) 
-search store subs = Vect.filter (Strings.isInfixOf subs) (items store)
+search :  DataStore -> String -> (p ** Vect p (Nat,String))
+search store subs =
+    let positions = map cast $  range { len = size store}  in
+    Vect.filter (Strings.isInfixOf subs . snd) (Vect.zip positions (items store))
 
-searchResultToString : (p ** Vect p String) -> String
-searchResultToString (_ ** (x :: xs)) = (show x) ++ "\n"++ searchResultToString (_ ** xs)
+searchResultToString : (p ** Vect p (Nat,String)) -> String
+searchResultToString (_ ** ((p,x) :: xs)) = (show p) ++ " -> " ++ (show x) ++ "\n"++ searchResultToString (_ ** xs)
 searchResultToString _ = ""
 
 sumInputs : Integer -> String -> Maybe (String, Integer)
@@ -69,7 +71,7 @@ processInput store inp
             Nothing => Just ("nope ", store)
             Just item => Just (item, store)
     Just(Size) => Just(show (size store), store)
-    Just(Search x) => Just(show (search store x), store)
+    Just(Search x) => Just(searchResultToString(search store x), store)
     Just Quit => Nothing
 
     
