@@ -2,10 +2,7 @@ module Main
 
 import Data.Fin
 import Data.Vect
-
-main : IO ()
-main = putStrLn ?greeting
-
+import System
 
 StringOrInt : Bool -> Type
 StringOrInt x = case x of 
@@ -169,3 +166,64 @@ printLonger = getLine >>= (\first => getLine >>= (\second =>
 --     case lfirst>lsecond of
 --         True => putStrLn first
 --         False => putStrLn second
+readNumber : IO (Maybe Nat)
+readNumber = do
+    input <- getLine
+    if all isDigit (unpack input)
+        then pure (Just (cast input))
+        else pure Nothing
+countdown : (secs : Nat) -> IO ()
+countdown Z = putStrLn "Lift off!"
+countdown (S secs) = do
+    putStrLn (show (S secs))
+    usleep 1000000
+    countdown secs
+
+countdowns : IO ()
+countdowns = do 
+    putStr "Enter starting number: "
+    Just startNum <- readNumber | Nothing => do putStrLn "Invalid input"
+    countdown startNum
+    putStr "Another (y/n)? "
+    yn <- getLine
+    if yn == "y" 
+        then countdowns
+        else pure ()
+
+
+guess : (target : Nat) -> IO ()
+guess number = do 
+    putStr "What's your guess? "
+    Just g <- readNumber | Nothing => do putStrLn "Invalid input"
+                                         guess number
+    case compare number g of 
+        LT => do putStrLn "It’s lower"
+                 guess number
+        GT => do putStrLn "It’s higher"
+                 guess number
+        _  => putStrLn "You're right!"
+
+
+
+cguess : (target : Nat) -> (guesses : Nat) -> IO ()
+cguess number guesses = do 
+    putStrLn (show guesses)
+    putStr "What's your guess? "
+    Just g <- readNumber | Nothing => do putStrLn "Invalid input"
+                                         cguess number guesses
+    case compare number g of 
+        LT => do putStrLn "It’s lower"
+                 cguess number (S guesses)
+        GT => do putStrLn "It’s higher"
+                 cguess number (S guesses)
+        _  => putStrLn "You're right!"
+
+
+main : IO ()
+main = do 
+    num <- System.time
+    cguess (fromIntegerNat (mod num 100)) Z
+
+zepl : String -> (String -> String) -> IO ()
+
+zeplWith : a -> String -> (a -> String -> Maybe (String, a)) -> IO ()
