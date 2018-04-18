@@ -224,6 +224,45 @@ main = do
     num <- System.time
     cguess (fromIntegerNat (mod num 100)) Z
 
-zepl : String -> (String -> String) -> IO ()
-
 zeplWith : a -> String -> (a -> String -> Maybe (String, a)) -> IO ()
+zeplWith state prompt onInput =
+    do putStr prompt
+       input <- getLine
+       case onInput state input of
+         Just (result, state') => do   
+                    putStrLn result
+                    zeplWith state' prompt onInput
+         Nothing => pure ()
+
+zepl : String -> (String -> String) -> IO ()
+zepl prompt onInput = zeplWith () prompt (\x,y => Just $ (onInput y, ()))
+
+
+readVectLen : (len : Nat) -> IO (Vect len String)
+readVectLen Z = pure []
+readVectLen (S k) = do x <- getLine
+                       xs <- readVectLen k
+                       pure (x :: xs)
+
+
+readVect : IO (n ** Vect n String)
+readVect = do x <- getLine
+              if (x == "")
+                  then pure (_ ** [])
+                  else do (_ ** v) <- readVect
+                          pure (_ ** (x :: v))
+       
+
+printVect : Show a => (n ** Vect n a) -> IO ()
+printVect (n ** v)
+    = putStrLn (show v ++ " (length " ++ show n ++ ")")
+
+zipInputs : IO ()
+zipInputs = do putStrLn "Enter first vector (blank line to end):"
+               (len1 ** vec1) <- readVect
+               putStrLn "Enter second vector (blank line to end):"
+               (len2 ** vec2) <- readVect
+               case (exactLength len2 vec1) of
+                Just vec1 => putStrLn $ show $ Vect.zip vec1 vec2
+                Nothing => putStrLn "Vectors are of different lengths: cannot zip"
+               
