@@ -265,4 +265,50 @@ zipInputs = do putStrLn "Enter first vector (blank line to end):"
                case (exactLength len2 vec1) of
                 Just vec1 => putStrLn $ show $ Vect.zip vec1 vec2
                 Nothing => putStrLn "Vectors are of different lengths: cannot zip"
-               
+
+-- checkout openFile, closeFile, fEOF, fGetLine,and writeFile
+
+readToBlank : IO (List String)
+readToBlank = do
+    x <- getLine
+    if x == "" 
+        then pure []
+        else (x  ::) <$> readToBlank 
+
+readAndSave : IO()
+readAndSave = do
+    stuffToWrite <- readToBlank
+    filePath <- getLine
+    _ <- writeFile filePath (concat stuffToWrite)
+    pure ()
+
+
+
+    
+readVectFromFile : File -> IO (n : Nat ** Vect n String)
+readVectFromFile file = do
+    isEnd <- fEOF file
+    case not isEnd of
+        True => do
+            Right line <- fGetLine file | Left err =>  do
+                                                        _ <- print err
+                                                        pure (_** [])
+            previous <- readVectFromFile file
+            case previous of
+                (_ ** x) => pure (_** line::x)
+        False => pure (_** [])
+
+readVectFile : (filename : String) -> IO (n ** Vect n String)
+readVectFile filename = do
+     Right f <- openFile filename Read | Left err => do
+                                                       _ <- print err
+                                                       pure (_** [])
+     readVectFromFile f 
+
+AdderType : (Nat) -> Type
+AdderType Z = Int
+AdderType (S k) = (Int) -> AdderType k
+
+adder : (numargs : Nat) -> (acc : Int) -> AdderType numargs
+adder Z acc = acc
+adder (S k) acc = \next => adder k (next + acc)
