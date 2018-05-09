@@ -312,3 +312,33 @@ AdderType (S k) = (Int) -> AdderType k
 adder : (numargs : Nat) -> (acc : Int) -> AdderType numargs
 adder Z acc = acc
 adder (S k) acc = \next => adder k (next + acc)
+
+data Format = Number Format
+    | Str Format
+    | Lit String Format
+    | End
+
+PrintfType : Format -> Type
+PrintfType End = String 
+PrintfType (Lit st rest) = PrintfType rest
+PrintfType (Str rest) = (String) -> PrintfType rest
+PrintfType (Number rest) = (Int) -> PrintfType rest 
+
+printfFmt : (fmt : Format) -> (acc : String) -> PrintfType fmt
+printfFmt (Number x) acc = \y => printfFmt x (acc ++ show y) 
+printfFmt (Str x) acc = \y => printfFmt x (acc ++ y)
+printfFmt (Lit x y) acc = printfFmt y (acc ++ x)
+printfFmt End acc = acc
+
+-- Banana %s Monkey -> (Lit "Banana " (Str (Lit " Monkey" End)))
+toFormat : (xs : List Char) -> Format
+toFormat [] = End
+toFormat ('%' :: 's' :: xs) = Str (toFormat xs)
+toFormat ('%' :: 'd' :: xs) = Number (toFormat xs)
+toFormat (x :: xs) = Lit ( x) (toFormat xs)
+
+--*Hello> printfFmt (toFormat (unpack "Banana %s Monkey")) "" "eaten by"
+--"'B''a''n''a''n''a'' 'eaten by' ''M''o''n''k''e''y'" : String
+
+printf : (formatString : String) -> PrintfType (toFormat $ unpack formatString)
+printf formatString = printfFmt (toFormat $ unpack formatString) ""
