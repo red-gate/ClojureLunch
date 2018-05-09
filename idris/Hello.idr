@@ -335,7 +335,7 @@ toFormat : (xs : List Char) -> Format
 toFormat [] = End
 toFormat ('%' :: 's' :: xs) = Str (toFormat xs)
 toFormat ('%' :: 'd' :: xs) = Number (toFormat xs)
-toFormat (x :: xs) = Lit ( x) (toFormat xs)
+toFormat (x :: xs) = Lit ( pack (the (List Char) [x] )) (toFormat xs)
 
 --*Hello> printfFmt (toFormat (unpack "Banana %s Monkey")) "" "eaten by"
 --"'B''a''n''a''n''a'' 'eaten by' ''M''o''n''k''e''y'" : String
