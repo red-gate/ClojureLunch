@@ -316,6 +316,8 @@ adder (S k) acc = \next => adder k (next + acc)
 data Format = Number Format
     | Str Format
     | Lit String Format
+    | Doub Format
+    | Character Format
     | End
 
 PrintfType : Format -> Type
@@ -323,11 +325,15 @@ PrintfType End = String
 PrintfType (Lit st rest) = PrintfType rest
 PrintfType (Str rest) = (String) -> PrintfType rest
 PrintfType (Number rest) = (Int) -> PrintfType rest 
+PrintfType (Doub rest) = (Double) -> PrintfType rest 
+PrintfType (Character rest) = (Char) -> PrintfType rest 
 
 printfFmt : (fmt : Format) -> (acc : String) -> PrintfType fmt
 printfFmt (Number x) acc = \y => printfFmt x (acc ++ show y) 
 printfFmt (Str x) acc = \y => printfFmt x (acc ++ y)
 printfFmt (Lit x y) acc = printfFmt y (acc ++ x)
+printfFmt (Doub x) acc = \y => printfFmt x (acc ++ show y)
+printfFmt (Character x) acc = \y => printfFmt x (acc ++ ( pack (the (List Char) [y] )))
 printfFmt End acc = acc
 
 -- Banana %s Monkey -> (Lit "Banana " (Str (Lit " Monkey" End)))
@@ -335,10 +341,31 @@ toFormat : (xs : List Char) -> Format
 toFormat [] = End
 toFormat ('%' :: 's' :: xs) = Str (toFormat xs)
 toFormat ('%' :: 'd' :: xs) = Number (toFormat xs)
+toFormat ('%' :: 'f' :: xs) = Doub (toFormat xs)
+toFormat ('%' :: 'c' :: xs) = Character (toFormat xs)
 toFormat (x :: xs) = Lit ( pack (the (List Char) [x] )) (toFormat xs)
 
 --*Hello> printfFmt (toFormat (unpack "Banana %s Monkey")) "" "eaten by"
 --"'B''a''n''a''n''a'' 'eaten by' ''M''o''n''k''e''y'" : String
 
 printf : (formatString : String) -> PrintfType (toFormat $ unpack formatString)
-printf formatString = printfFmt (toFormat $ unpack formatString) ""
+printf formatString = printfFmt _ ""
+
+Matrix : (m :Nat) -> (n : Nat) -> Type
+Matrix m n = Vect m (Vect n Double) 
+
+testMatrix : Matrix 2 3
+testMatrix = [[0, 0, 0],
+ [0, 0, 0]]
+
+
+-- TupleVect 0 ty = ()
+-- TupleVect 1 ty = (ty, ())
+-- TupleVect 2 ty = (ty, (ty, ()))
+
+TupleVect : Nat -> Type -> Type
+TupleVect Z _ = ()
+TupleVect (S x) ty = (ty, TupleVect x ty)
+
+test : TupleVect 4 Nat
+test = (1,2,3,4,())
