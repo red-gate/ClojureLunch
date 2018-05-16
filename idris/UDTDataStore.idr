@@ -13,8 +13,6 @@ SchemaType SString = String
 SchemaType SInt = Int
 SchemaType (x .+. y) = (SchemaType x, SchemaType y)
 
-
-
 data DataStore : Type where
     MkData : (schema : Schema) -> (size : Nat) -> 
     (items : Vect size (SchemaType schema)) -> DataStore
@@ -35,21 +33,24 @@ addToStore (MkData s size items') newitem = MkData _ _ (addToData items')
     addToData [] = [newitem]
     addToData (item :: items) = item :: addToData items
 
-{-
-search :  DataStore -> String -> (p ** Vect p (Nat,String))
-search store subs =
-    let positions = map cast $  range { len = size store}  in
-    Vect.filter (Strings.isInfixOf subs . snd) (Vect.zip positions (items store))
+stringInItem : (schema: Schema) -> String -> (SchemaType schema) -> Bool
+stringInItem SString x y = Strings.isInfixOf x y
+stringInItem SInt x y = False
+stringInItem (z1 .+. z2) x (y1, y2) = (stringInItem z1 x y1) || (stringInItem z2 x y2) 
 
-searchResultToString : (p ** Vect p (Nat,String)) -> String
-searchResultToString (_ ** ((p,x) :: xs)) = (show p) ++ " -> " ++ (show x) ++ "\n"++ searchResultToString (_ ** xs)
-searchResultToString _ = ""
+search : (store: DataStore) -> String -> (p ** Vect p (Nat, SchemaType (schema store)))
+search store subs =  
+    let positions = map cast $ range { len = size store}  in
+    Vect.filter (stringInItem (schema store) subs . snd) (Vect.zip positions (items store))
 
-sumInputs : Integer -> String -> Maybe (String, Integer)
-sumInputs x y = let v = cast y in
-        if v < 0 
-            then Nothing
-            else let newVal = v + x in Just ("New = " ++ (show newVal), newVal)
+stringify : (schema: Schema) -> (SchemaType schema) -> String
+stringify SInt x = show x
+stringify SString x = x
+stringify (z1 .+. z2) (x,y) = stringify z1 x ++ stringify z2 y
+
+searchResultToString : (store: DataStore) -> (p ** Vect p (Nat, SchemaType (schema store))) -> String
+searchResultToString store (_ ** ((p,v) :: xs)) = show p ++ " -> " ++ (stringify (schema store) v) ++ "\n" ++ (searchResultToString store(_ ** xs))
+searchResultToString _ _ = ""
 
 data Command = 
     Add String
@@ -78,6 +79,12 @@ tryIndex {n} x xs = case integerToFin x n of
                         Nothing => Nothing
                         (Just y) => Just(Data.Vect.index y xs)
 
+                       
+parseValue : (schema: Schema) -> String -> Maybe(SchemaType schema, String)
+parseValue SInt input = case partition isDigit $ unpack input of
+    (digits, tail) => Just ((cast $ pack digits) , (pack tail))
+
+{-
 processInput : DataStore -> String -> Maybe (String, DataStore)
 processInput store inp
     = case parse inp of
@@ -90,7 +97,8 @@ processInput store inp
     Just(Search x) => Just(searchResultToString(search store x), store)
     Just Quit => Nothing
 
-    
+
+  
 main : IO ()
 main = replWith (MkData _ []) "Command:" processInput
 -}
