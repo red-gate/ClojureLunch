@@ -17,6 +17,22 @@ data DataStore : Type where
     MkData : (schema : Schema) -> (size : Nat) -> 
     (items : Vect size (SchemaType schema)) -> DataStore
 
+data Token : Type where  
+    LBRA : Nat -> Token
+    RBRA :Nat -> Token
+    INT : Int -> Token
+    COMMA : Token 
+
+Tokenize : List Char -> Nat -> List Token
+Tokenize (',' :: rest) depth = COMMA :: Tokenize rest depth
+Tokenize ('(' :: rest) depth = LBRA depth :: Tokenize rest (S depth)
+Tokenize (')' :: rest) (S depth) = RBRA depth :: Tokenize rest depth
+Tokenize (x :: rest) depth = if isDigit x
+                       then INT (cast x) :: Tokenize rest depth
+                       else []
+Tokenize _ _ = []
+
+
 
 schema : DataStore -> Schema
 schema (MkData schema' size' items') = schema'
@@ -84,21 +100,22 @@ parseValue : (schema: Schema) -> String -> Maybe(SchemaType schema, String)
 parseValue SInt input = case partition isDigit $ unpack input of
     (digits, tail) => Just ((cast $ pack digits) , (pack tail))
 
-{-
+
 processInput : DataStore -> String -> Maybe (String, DataStore)
 processInput store inp
     = case parse inp of
     Nothing => Just ("Invalid command\n", store)
-    Just (Add x) => Just ("", addToStore store x)
+    Just (Add x) => 
+        case parseValue (schema store) x of 
+             Nothing => Just ("Invalid type", store)
+             Just (v, _) => Just ("", addToStore store v)
     Just (Get x) => case (tryIndex x (items store)) of
             Nothing => Just ("nope ", store)
-            Just item => Just (item, store)
+            Just item => Just (stringify (schema store) item, store)
     Just(Size) => Just(show (size store), store)
-    Just(Search x) => Just(searchResultToString(search store x), store)
+    Just(Search x) => Just(searchResultToString store (search store x), store)
     Just Quit => Nothing
-
 
   
 main : IO ()
-main = replWith (MkData _ []) "Command:" processInput
--}
+main = replWith (MkData (SInt .+. SInt) _ []) "Command:" processInput
