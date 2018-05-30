@@ -21,17 +21,27 @@ data Token : Type where
     LBRA : Nat -> Token
     RBRA :Nat -> Token
     INT : Int -> Token
-    COMMA : Token 
+    COMMA :Nat -> Token
+
+implementation Eq Token where
+    (==) (LBRA k) (LBRA j)  = k == j
+    (==) (RBRA k) (RBRA j) = k == j
+    (==) (INT x) (INT y) = x == y
+    (==) (COMMA k) (COMMA j) = k == j
+    (==) _ _ = False
+
 
 Tokenize : List Char -> Nat -> List Token
-Tokenize (',' :: rest) depth = COMMA :: Tokenize rest depth
-Tokenize ('(' :: rest) depth = LBRA depth :: Tokenize rest (S depth)
-Tokenize (')' :: rest) (S depth) = RBRA depth :: Tokenize rest depth
+Tokenize (',' :: rest) depth = COMMA depth :: Tokenize rest depth
+Tokenize ('(' :: rest) depth = LBRA (S depth) :: Tokenize rest (S depth)
+Tokenize (')' :: rest) (S depth) = RBRA (S depth) :: Tokenize rest depth
 Tokenize (x :: rest) depth = if isDigit x
-                       then INT (cast x) :: Tokenize rest depth
+                       then INT (cast $ the String (cast x)) :: Tokenize rest depth
                        else []
 Tokenize _ _ = []
 
+tokenize : List Char -> List Token
+tokenize x = Tokenize x 0 
 
 
 schema : DataStore -> Schema
@@ -95,7 +105,25 @@ tryIndex {n} x xs = case integerToFin x n of
                         Nothing => Nothing
                         (Just y) => Just(Data.Vect.index y xs)
 
-                       
+--(2,(3,4))
+--011122210
+parseValue' : (schema: Schema) -> (a: List Token) -> Maybe(SchemaType schema)
+parseValue' SInt input = case takeWhile isDig input of
+        (digits) => let dig = (\(INT x) => x) <$> digits 
+                        in Just (undigit dig)
+    where 
+          isDig : Token -> Bool
+          isDig (INT _) = True
+          isDig _ = False
+          undigit : List Int -> Int
+          undigit xs = (cast $ the String $ concat (cast <$> xs))
+parseValue' (p1 .+. p2) ((LBRA depth)::input) = do 
+    let inbrackets = List.takeWhile (\x => x/= RBRA depth) input
+    let (lhand, (_ :: rhand)) = break (\x => x == COMMA depth) inbrackets
+    parsedL <- parseValue' p1 lhand
+    parsedR <- parseValue' p2 rhand
+    pure (parsedL, parsedR)
+
 parseValue : (schema: Schema) -> String -> Maybe(SchemaType schema, String)
 parseValue SInt input = case partition isDigit $ unpack input of
     (digits, tail) => Just ((cast $ pack digits) , (pack tail))
