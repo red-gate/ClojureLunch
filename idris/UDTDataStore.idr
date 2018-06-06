@@ -19,15 +19,17 @@ data DataStore : Type where
 
 data Token : Type where  
     LBRA : Nat -> Token
-    RBRA :Nat -> Token
+    RBRA : Nat -> Token
     INT : Int -> Token
-    COMMA :Nat -> Token
+    COMMA : Nat -> Token
+    CHAR : Char -> Token
 
 implementation Eq Token where
     (==) (LBRA k) (LBRA j)  = k == j
     (==) (RBRA k) (RBRA j) = k == j
     (==) (INT x) (INT y) = x == y
     (==) (COMMA k) (COMMA j) = k == j
+    (==) (CHAR x) (CHAR y) = x == y
     (==) _ _ = False
 
 
@@ -37,7 +39,7 @@ Tokenize ('(' :: rest) depth = LBRA (S depth) :: Tokenize rest (S depth)
 Tokenize (')' :: rest) (S depth) = RBRA (S depth) :: Tokenize rest depth
 Tokenize (x :: rest) depth = if isDigit x
                        then INT (cast $ the String (cast x)) :: Tokenize rest depth
-                       else []
+                       else CHAR x :: Tokenize rest depth
 Tokenize _ _ = []
 
 tokenize : List Char -> List Token
@@ -72,7 +74,7 @@ search store subs =
 stringify : (schema: Schema) -> (SchemaType schema) -> String
 stringify SInt x = show x
 stringify SString x = x
-stringify (z1 .+. z2) (x,y) = stringify z1 x ++ stringify z2 y
+stringify (z1 .+. z2) (x,y) = "(" ++ stringify z1 x++ "," ++ stringify z2 y ++ ")"
 
 searchResultToString : (store: DataStore) -> (p ** Vect p (Nat, SchemaType (schema store))) -> String
 searchResultToString store (_ ** ((p,v) :: xs)) = show p ++ " -> " ++ (stringify (schema store) v) ++ "\n" ++ (searchResultToString store(_ ** xs))
@@ -123,10 +125,15 @@ parseValue' (p1 .+. p2) ((LBRA depth)::input) = do
     parsedL <- parseValue' p1 lhand
     parsedR <- parseValue' p2 rhand
     pure (parsedL, parsedR)
+parseValue' SString input = case takeWhile isChar input of
+        chars => Just $ pack $ ((\(CHAR x) => x) <$> chars)
+    where 
+        isChar : Token -> Bool
+        isChar (CHAR _) = True
+        isChar _ = False
 
-parseValue : (schema: Schema) -> String -> Maybe(SchemaType schema, String)
-parseValue SInt input = case partition isDigit $ unpack input of
-    (digits, tail) => Just ((cast $ pack digits) , (pack tail))
+parseValue : (schema: Schema) -> String -> Maybe(SchemaType schema)
+parseValue schema string = parseValue' schema (Tokenize (unpack string) 0)
 
 
 processInput : DataStore -> String -> Maybe (String, DataStore)
@@ -136,7 +143,7 @@ processInput store inp
     Just (Add x) => 
         case parseValue (schema store) x of 
              Nothing => Just ("Invalid type", store)
-             Just (v, _) => Just ("", addToStore store v)
+             Just (v) => Just ("", addToStore store v)
     Just (Get x) => case (tryIndex x (items store)) of
             Nothing => Just ("nope ", store)
             Just item => Just (stringify (schema store) item, store)
@@ -146,4 +153,4 @@ processInput store inp
 
   
 main : IO ()
-main = replWith (MkData (SInt .+. SInt) _ []) "Command:" processInput
+main = replWith (MkData (SInt .+. SString) _ []) "Command:" processInput
