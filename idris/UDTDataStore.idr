@@ -85,6 +85,7 @@ data Command =
     | Get Integer
     | Size
     | Search String
+    | Reset String
     | Quit
 
 parseCommand : (cmd : String) -> (args : String) ->
@@ -96,6 +97,7 @@ parseCommand "get" val = case all isDigit (unpack val) of
 parseCommand "size" "" = Just (Size)
 parseCommand "quit" "" = Just Quit
 parseCommand "search" str = Just (Search str)
+parseCommand "reset" str = Just (Reset str)
 parseCommand _ _ = Nothing
 
 parse : (input : String) -> Maybe Command
@@ -135,6 +137,13 @@ parseValue' SString input = case takeWhile isChar input of
 parseValue : (schema: Schema) -> String -> Maybe(SchemaType schema)
 parseValue schema string = parseValue' schema (Tokenize (unpack string) 0)
 
+parseSchema : List Token -> (Schema, List Token)
+parseSchema (CHAR 'S' :: rest) = (SString, rest) 
+parseSchema (CHAR 'I' :: rest) = (SInt, rest)
+parseSchema (LBRA :: rest) =
+    let (left, COMMA :: rest2) = parseSchema rest in
+    let (right, RBRA :: rest3) = parseSchema rest2 in
+    (left .+. right, rest3)
 
 processInput : DataStore -> String -> Maybe (String, DataStore)
 processInput store inp
@@ -149,8 +158,8 @@ processInput store inp
             Just item => Just (stringify (schema store) item, store)
     Just(Size) => Just(show (size store), store)
     Just(Search x) => Just(searchResultToString store (search store x), store)
+    Just(Reset x) => Just("Fine", let (schema, _) = parseSchema (tokenize $ unpack x) in MkData schema _ [])
     Just Quit => Nothing
-
-  
+    
 main : IO ()
 main = replWith (MkData (SInt .+. SString) _ []) "Command:" processInput
