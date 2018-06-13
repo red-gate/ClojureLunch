@@ -42,17 +42,28 @@ treeToList : Tree elem -> List elem
 treeToList Empty = []
 treeToList (Node x y z) = treeToList x ++ (y :: treeToList z)
 
-data Expr = Val Int 
-            | Add Expr Expr 
-            | Subtraction Expr Expr 
-            | Mult Expr Expr
+data Expr ty = Val ty 
+            | Add (Expr ty) (Expr ty) 
+            | Subtraction (Expr ty) (Expr ty) 
+            | Mult (Expr ty) (Expr ty)
 
-evaluate : Expr -> Int
+evaluate : Neg ty => Expr ty -> ty
 evaluate (Val x) = x
 evaluate (Add x y) = (evaluate x)+(evaluate y)
 evaluate (Subtraction x y) = (evaluate x)-(evaluate y)
 evaluate (Mult x y) = (evaluate x)*(evaluate y)
 
+Show ty => Show (Expr ty) where
+  show (Val x) = show x
+  show (Add x y) = (show x) ++ "+" ++ (show y)
+  show (Subtraction x y) = (show x) ++ "-" ++ (show y)
+  show (Mult x y) = (show x) ++ "*" ++ (show y)
+    
+(Eq ty, Neg ty) => Eq (Expr ty) where
+  (==) x y = (evaluate x) == (evaluate y)
+
+(Ord ty, Neg ty) => Ord (Expr ty) where
+  compare x y = compare (evaluate x) (evaluate y)
 
 maxMaybe : Ord a => Maybe a -> Maybe a -> Maybe a
 maxMaybe Nothing Nothing = Nothing
@@ -60,10 +71,19 @@ maxMaybe Nothing (Just x) = Just x
 maxMaybe (Just x) Nothing = Just x
 maxMaybe (Just x) (Just y) = Just (max x y)
 
+(Neg ty) => Cast (Expr ty) ty where
+  cast = evaluate
 
 data Shape = Triangle Double Double
     | Rectangle Double Double
     | Circle Double
+
+
+Eq Shape where
+  (==) (Triangle x z) (Triangle x' z') = x == x' && z == z'
+  (==) (Rectangle x z) (Rectangle x' z') = x == x' && z == z'
+  (==) (Circle x) (Circle x') = x == x'
+  (==) _ _ = False
 
 data Picture = Primitive Shape
     | Combine Picture Picture
@@ -85,6 +105,9 @@ area : Shape -> Double
 area (Triangle base height) = 0.5 * base * height
 area (Rectangle length height) = length * height
 area (Circle radius) = pi * radius * radius
+
+Ord Shape where
+    compare x y = compare (area x) (area y)
 
 pictureArea : Picture -> Double
 pictureArea (Primitive shape) = area shape
