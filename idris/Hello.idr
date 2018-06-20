@@ -53,6 +53,14 @@ evaluate (Add x y) = (evaluate x)+(evaluate y)
 evaluate (Subtraction x y) = (evaluate x)-(evaluate y)
 evaluate (Mult x y) = (evaluate x)*(evaluate y)
 
+Functor Expr  where
+ map f (Val x) = Val $ f x
+ map f (Add x y) =  Add (map f x) (map f y)
+ map f (Subtraction x y) =   Subtraction (map f x) (map f y)
+ map f (Mult x y) =   Mult (map f x) (map f y)
+
+ 
+
 Show ty => Show (Expr ty) where
   show (Val x) = show x
   show (Add x y) = (show x) ++ "+" ++ (show y)

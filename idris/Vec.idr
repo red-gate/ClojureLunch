@@ -11,6 +11,11 @@ zip : Vect n a -> Vect n b -> Vect n (a, b)
 zip [] [] = []
 zip (x :: xs) (y :: ys) = ?hole :: ?rest
 
-index : Fin n -> Vect n a -> a
-index FZ (x :: xs) = x
-index (FS x) (y :: xs) = index x xs
+(Eq ty) => Eq (Vect n ty) where
+    (==) [] [] = True
+    (==) (x :: xs) (y :: ys) = x == y && xs == ys
+
+Foldable (Vect n) where 
+  foldr func init [] = init
+  foldr func init (x :: xs) = func x (foldr func init xs)
+  --foldl func init input = ?Foldable_rhs_2
