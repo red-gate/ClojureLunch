@@ -400,3 +400,20 @@ TupleVect (S x) ty = (ty, TupleVect x ty)
 
 test : TupleVect 4 Nat
 test = (1,2,3,4,())
+
+same_cons : { xs : List a } -> { ys : List a } ->
+        xs = ys -> x :: xs = x :: ys
+same_cons eq = cong  eq 
+
+same_head : {xs : List a } -> x = y -> x::xs = y::xs
+same_head {xs} eq = cong {f = \x => x::xs} eq
+
+same_lists : { xs : List a } -> { ys : List a } ->
+        x = y -> xs = ys -> x :: xs = y :: ys
+same_lists elEq lEq = trans (same_cons lEq) (same_head elEq)
+
+data ThreeEq : a -> b -> c -> Type where
+    Refl : ThreeEq x x x
+
+allSameS : (x, y, z : Nat) -> ThreeEq x y z -> ThreeEq (S x) (S y) (S z)
+-- do something here ... ?
