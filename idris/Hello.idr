@@ -403,17 +403,28 @@ test = (1,2,3,4,())
 
 same_cons : { xs : List a } -> { ys : List a } ->
         xs = ys -> x :: xs = x :: ys
-same_cons eq = cong  eq 
+same_cons  = cong   
 
 same_head : {xs : List a } -> x = y -> x::xs = y::xs
-same_head {xs} eq = cong {f = \x => x::xs} eq
+same_head {xs}  = cong {f = \x => x::xs} 
 
 same_lists : { xs : List a } -> { ys : List a } ->
         x = y -> xs = ys -> x :: xs = y :: ys
-same_lists elEq lEq = trans (same_cons lEq) (same_head elEq)
+same_lists Refl = same_cons 
+    -- trans (same_cons lEq) (same_head elEq)
 
 data ThreeEq : a -> b -> c -> Type where
     Refl : ThreeEq x x x
 
 allSameS : (x, y, z : Nat) -> ThreeEq x y z -> ThreeEq (S x) (S y) (S z)
+allSameS z z z Refl = Refl
 -- do something here ... ?
+
+
+myReverse : Vect n elem -> Vect n elem
+myReverse [] = []
+myReverse (x :: xs) = reverseProof (myReverse xs ++ [x])
+    where
+        reverseProof : Vect (len + 1) elem -> Vect (S len) elem
+        reverseProof {len} result = rewrite plusCommutative 1 len in result
+                 
