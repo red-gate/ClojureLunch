@@ -420,11 +420,46 @@ allSameS : (x, y, z : Nat) -> ThreeEq x y z -> ThreeEq (S x) (S y) (S z)
 allSameS z z z Refl = Refl
 -- do something here ... ?
 
-
+{- 
 myReverse : Vect n elem -> Vect n elem
 myReverse [] = []
 myReverse (x :: xs) = reverseProof (myReverse xs ++ [x])
     where
         reverseProof : Vect (len + 1) elem -> Vect (S len) elem
         reverseProof {len} result = rewrite plusCommutative 1 len in result
-                 
+-}
+myPlusCommutes : (n : Nat) -> (m : Nat) -> n + m = m + n
+myPlusCommutes Z m = rewrite plusZeroRightNeutral m in Refl
+myPlusCommutes (S k) m = rewrite plusSuccRightSucc k m in 
+                            rewrite myPlusCommutes k (S m) in 
+                                rewrite plusSuccRightSucc m k in Refl
+
+reverseProof_nil : Vect n1 a -> Vect (plus n1 0) a
+reverseProof_nil {n1} xs = rewrite plusZeroRightNeutral n1 in xs
+
+reverseProof_xs : Vect ((S n1) + len) a -> Vect (plus n1 (S len)) a
+reverseProof_xs {n1} {len} xs = rewrite sym (plusSuccRightSucc n1 len) in xs
+
+
+myReverse : Vect n a -> Vect n a
+myReverse xs = reverse' [] xs
+    where reverse' : Vect n a -> Vect m a -> Vect (n+m) a
+          reverse' acc [] = reverseProof_nil acc
+          reverse' acc (x :: xs) = reverseProof_xs  (reverse' (x::acc) xs)                                
+
+
+zeroNotSuc : (0 = S k) -> Void
+zeroNotSuc Refl impossible
+sucNotZero : (S k = 0) -> Void
+sucNotZero Refl impossible
+
+noRec : (contra : (k = j) -> Void) -> (S k = S j) -> Void
+noRec contra Refl = contra Refl
+
+checkEqNat : (num1 : Nat) -> (num2 : Nat) -> Dec (num1 = num2)
+checkEqNat Z Z = Yes Refl
+checkEqNat Z (S k) = No zeroNotSuc
+checkEqNat (S k) Z = No sucNotZero
+checkEqNat (S k) (S j) = case checkEqNat k j of
+                            Yes prf => Yes (cong prf)
+                            No contra => No (noRec contra)
