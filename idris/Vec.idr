@@ -1,3 +1,6 @@
+
+import Data.List.Views
+
 data Vect : Nat -> Type -> Type where
     Nil : Vect Z a
     (::) : (x : a) -> (xs : Vect k a) -> Vect (S k) a
@@ -15,7 +18,7 @@ zip (x :: xs) (y :: ys) = ?hole :: ?rest
     (==) [] [] = True
     (==) (x :: xs) (y :: ys) = x == y && xs == ys
 
-Foldable (Vect n) where 
+Foldable (Vect n) where
   foldr func init [] = init
   foldr func init (x :: xs) = func x (foldr func init xs)
   --foldl func init input = ?Foldable_rhs_2
@@ -28,8 +31,8 @@ tailUnequal contra Refl = contra Refl
 
 DecEq a => DecEq (Vect n a) where
     decEq [] [] = Yes Refl
-    decEq (x::xs) (y::ys) = case decEq x y of 
-        Yes Refl => case decEq xs ys of 
+    decEq (x::xs) (y::ys) = case decEq x y of
+        Yes Refl => case decEq xs ys of
             Yes Refl => Yes Refl
             No contra => No $ tailUnequal contra
         No contra => No $ headUnequal contra
@@ -76,7 +79,7 @@ describeListEnd input with (listLast input)
 myReverse : List a -> List a
 myReverse input with (listLast input)
     myReverse [] | Empty = []
-    myReverse (xs++[x]) | (NonEmpty xs x) = x :: myReverse xs 
+    myReverse (xs++[x]) | (NonEmpty xs x) = x :: myReverse xs
 
 
 data SplitList : List a -> Type where
@@ -124,3 +127,12 @@ halves : List a -> (List a, List a)
 halves xs with (takeN (div (length xs) 2) xs)
   halves xs | Fewer = ([],[])
   halves (n_xs ++ rest) | (Exact n_xs) = ((n_xs, rest))
+
+equalSuffix : Eq a => List a -> List a -> List a
+equalSuffix xs ys with (snocList xs)
+  equalSuffix [] ys | Empty = []
+  equalSuffix (xs ++ [x]) ys | (Snoc xsrec) with (snocList ys)
+    equalSuffix (xs ++ [x]) [] | (Snoc xsrec) | Empty = []
+    equalSuffix (xs ++ [x]) (ys ++ [y]) | (Snoc xsrec) | (Snoc ysrec) =
+      if x == y then (equalSuffix xs ys | xsrec | ysrec) ++ [x]
+        else (equalSuffix xs ys | xsrec | ysrec)
