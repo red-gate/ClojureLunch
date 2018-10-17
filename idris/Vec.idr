@@ -135,4 +135,4 @@ equalSuffix xs ys with (snocList xs)
     equalSuffix (xs ++ [x]) [] | (Snoc xsrec) | Empty = []
     equalSuffix (xs ++ [x]) (ys ++ [y]) | (Snoc xsrec) | (Snoc ysrec) =
       if x == y then (equalSuffix xs ys | xsrec | ysrec) ++ [x]
-        else (equalSuffix xs ys | xsrec | ysrec)
+        else []
