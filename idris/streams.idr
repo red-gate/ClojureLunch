@@ -36,6 +36,8 @@ square_root number = square_root_bound 100 number 0.00000000001
 
 data InfIO : Type where
   Do : IO a -> (a -> Inf InfIO) -> InfIO
+
+
 (>>=) : IO a -> (a -> Inf InfIO) -> InfIO
 (>>=) = Do
 
@@ -88,3 +90,11 @@ partial
 main : IO ()
 main = do seed <- time
           run forever (quiz (arithInputs (fromInteger seed)) 0)
+
+totalREPL : (prompt : String) -> (action : String -> String) -> InfIO
+totalREPL prompt action = do
+                             putStr prompt
+                             userInput <- getLine
+                             let output = action userInput
+                             putStrLn output
+                             totalREPL prompt action
