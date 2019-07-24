@@ -10,3 +10,4 @@ pom.xml
 target/
 haskell-cmd-game/.stack-work/
 .psc-package
+.stack-work
