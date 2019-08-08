@@ -58,6 +58,20 @@ unlockDoor (UnsafeMkDoor m h) = UnsafeMkDoor m h
 openDoor :: Door 'Closed -> Door 'Opened
 openDoor (UnsafeMkDoor m h) = UnsafeMkDoor m h
 
+  -- The door is in a strange initial state
+  --   let d = UnsafeMkDoor "iron" "circular"
+  
+  -- It's in some kind of quantum state (so you can open or close it)
+
+  -- Prelude Main> :t d
+  -- d :: Door s
+
+  -- However, you can force the initial state 
+
+  -- Prelude Main> let d = UnsafeMkDoor "iron" "circular" :: Door Opened
+  -- Prelude Main> :t d
+  -- d :: Door 'Opened
+
 fromSingDS :: SingDS s -> DoorState
 fromSingDS SOpened = Opened
 fromSingDS SClosed = Closed
@@ -88,6 +102,6 @@ main :: IO ()
 main = do
   let x = MkFoo 9
   let y = MkFoo 6
-  let d = UnsafeMkDoor "one"  
+  let d = UnsafeMkDoor "iron" "circular"
   putStrLn "hello world"
 
