@@ -13,6 +13,9 @@ data Door (s :: DoorState) = UnsafeMkDoor { doorMaterial :: String, handleShape 
 
   -- 'Opened etc are *type constructors* as opposed to the 
   -- data constructors Opened etc on the DoorState datatype
+  --
+  -- See the notes on promotion in
+  -- http://dreixel.net/research/pdf/ghp.pdf
 data SingDS :: DoorState -> * where
   SOpened :: SingDS 'Opened
   SClosed :: SingDS 'Closed
