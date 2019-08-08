@@ -21,6 +21,9 @@ data SingDS :: DoorState -> * where
   -- this works, but note that Opened here is the same
   -- *type constructor* as above ('Opened) NOT the 
   -- data constructor
+  --
+  -- There is discussion of the disambigutaion using the quote 
+  -- https://downloads.haskell.org/~ghc/7.8.4/docs/html/users_guide/promotion.html
 data SingDSx :: DoorState -> * where
     SOpenedx :: SingDSx Opened
     SClosedx :: SingDSx Closed
