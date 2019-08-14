@@ -1,5 +1,7 @@
 module Main where
 import Data.Text
+import Data.Singletons
+import Data.Singletons.TH
 
 -- https://blog.jle.im/entry/introduction-to-singletons-1.html
 
@@ -8,18 +10,10 @@ data Foo a = MkFoo Int
 data DoorState = Opened | Closed | Locked
   deriving (Show, Eq)
 
+genSingletons [''DoorState]
+
 data Door (s :: DoorState) = UnsafeMkDoor { doorMaterial :: String, handleShape :: String }
   deriving (Show)
-
-  -- 'Opened etc are *type constructors* as opposed to the 
-  -- data constructors Opened etc on the DoorState datatype
-  --
-  -- See the notes on promotion in
-  -- http://dreixel.net/research/pdf/ghp.pdf
-data SingDS :: DoorState -> * where
-  SOpened :: SingDS 'Opened
-  SClosed :: SingDS 'Closed
-  SLocked :: SingDS 'Locked
 
   -- this works, but note that Opened here is the same
   -- *type constructor* as above ('Opened) NOT the 
@@ -38,7 +32,7 @@ closeDoor (UnsafeMkDoor m h) = UnsafeMkDoor m h
 lockDoor :: Door 'Closed -> Door 'Locked
 lockDoor (UnsafeMkDoor m h) = UnsafeMkDoor m h
 
-lockAnyDoor :: SingDS s -> Door s -> Door 'Locked
+lockAnyDoor :: Sing s -> Door s -> Door 'Locked
 lockAnyDoor = \case
     SOpened -> lockDoor . closeDoor  -- in this branch, s is 'Opened
     SClosed -> lockDoor              -- in this branch, s is 'Closed
@@ -53,8 +47,8 @@ lockAnyDoor = \case
     -- with the same power. They are just written in different styles – 
     -- lockAnyDoor is written in explicit style, and lockAnyDoor_ is written in implicit style.
     
-lockAnyDoor_ :: SingDSI s => Door s -> Door 'Locked
-lockAnyDoor_ = lockAnyDoor singDS
+lockAnyDoor_ :: SingI s => Door s -> Door 'Locked
+lockAnyDoor_ = lockAnyDoor sing
       
   -- let b = lockAnyDoor_ (mkDoor SOpened "a" "b")
 
@@ -78,31 +72,14 @@ openDoor (UnsafeMkDoor m h) = UnsafeMkDoor m h
   -- Prelude Main> :t d
   -- d :: Door 'Opened
 
-fromSingDS :: SingDS s -> DoorState
-fromSingDS SOpened = Opened
-fromSingDS SClosed = Closed
-fromSingDS SLocked = Locked
- 
-doorStatus :: SingDS s -> Door s -> DoorState
-doorStatus s _ = fromSingDS s
+doorStatus :: Sing s -> Door s -> DoorState
+doorStatus s _ = fromSing s
 
-mkDoor :: SingDS s -> String -> String -> Door s
-mkDoor SOpened = UnsafeMkDoor
-mkDoor SClosed = UnsafeMkDoor
-mkDoor SLocked = UnsafeMkDoor
+mkDoor :: Sing s -> String ->  String -> Door s
+mkDoor _ = UnsafeMkDoor
 
-class SingDSI s where
-  singDS :: SingDS s
-
-instance SingDSI 'Opened where
-  singDS = SOpened
-instance SingDSI 'Closed where
-  singDS = SClosed
-instance SingDSI 'Locked where
-  singDS = SLocked
-
-doorStatus_ :: SingDSI s => Door s -> DoorState
-doorStatus_ = doorStatus singDS
+doorStatus_ :: SingI s => Door s -> DoorState
+doorStatus_ = doorStatus sing
 
 main :: IO ()
 main = do
@@ -110,4 +87,3 @@ main = do
   let y = MkFoo 6
   let d = UnsafeMkDoor "iron" "circular"
   putStrLn "hello world"
-
