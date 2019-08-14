@@ -81,6 +81,21 @@ mkDoor _ = UnsafeMkDoor
 doorStatus_ :: SingI s => Door s -> DoorState
 doorStatus_ = doorStatus sing
 
+newUnlockDoor :: Int -> Door 'Locked -> Maybe (Door 'Closed)
+newUnlockDoor n d = case (n `mod` 2) of
+                  0 -> Nothing
+                  1 -> Just $ unlockDoor d
+
+openAnyDoor :: SingI s => Int -> Door s -> Maybe (Door 'Opened)
+openAnyDoor n d = openAnyDoor_ sing d
+  where 
+    openAnyDoor_ :: Sing s -> Door s -> Maybe (Door 'Opened)
+    openAnyDoor_ s d = 
+      case s of
+        (SOpened) -> Just d
+        (SClosed) -> Just $ openDoor d
+        (SLocked) -> openDoor <$> newUnlockDoor n d
+
 main :: IO ()
 main = do
   let x = MkFoo 9
