@@ -48,4 +48,27 @@ withDoor ds x f = case ds of
   Opened -> f SOpened (mkDoor SOpened x "d")
   Closed -> f SClosed (mkDoor SClosed x "d")
   Locked -> f SLocked (mkDoor SLocked x "d")
-  
+
+data OldSomeDoor :: * where
+  OldMkSomeDoor :: DoorState -> String -> OldSomeDoor
+
+toOld :: SomeDoor -> OldSomeDoor
+toOld (MkSomeDoor sing (UnsafeMkDoor colour _))= OldMkSomeDoor (fromSing sing) colour
+
+fromOld :: OldSomeDoor -> SomeDoor
+fromOld (OldMkSomeDoor ds color)= withSomeSing  ds (\singDoorState -> MkSomeDoor singDoorState (mkDoor singDoorState color "random"))
+
+-- unlockDoor :: Int -> Door 'Locked -> Maybe (Door 'Closed)
+
+unlockSomeDoor :: Int -> Door 'Locked -> SomeDoor
+unlockSomeDoor password door = case newUnlockDoor password door of
+  Nothing -> fromDoor_ door
+  Just newDoor -> fromDoor_ newDoor
+
+-- openAnyDoor :: SingI s => Int -> Door s -> Maybe (Door 'Opened)
+
+openAnySomeDoor :: Int -> SomeDoor -> SomeDoor
+openAnySomeDoor password (MkSomeDoor sing door) = withSingI sing (case openAnyDoor password door of
+  Nothing -> fromDoor_ door
+  Just newDoor -> fromDoor_ newDoor)
+

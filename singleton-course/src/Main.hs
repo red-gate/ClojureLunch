@@ -102,3 +102,4 @@ main = do
   let y = MkFoo 6
   let d = UnsafeMkDoor "iron" "circular"
   putStrLn "hello world"
+
