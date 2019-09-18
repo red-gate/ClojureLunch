@@ -40,7 +40,12 @@ lockAnySomeDoor :: SomeDoor -> SomeDoor
 lockAnySomeDoor (MkSomeDoor s d) = fromDoor_ $ lockAnyDoor s d
 
 mkSomeDoor :: DoorState -> String -> String -> SomeDoor
-mkSomeDoor ds s = case ds of 
-    Opened -> fromDoor_ . (mkDoor SOpened s)
-    Closed -> fromDoor_ . (mkDoor SClosed s)
-    Locked -> fromDoor_ . (mkDoor SLocked s)
+mkSomeDoor ds st = case toSing ds of
+  SomeSing s -> fromDoor s . mkDoor s st 
+
+withDoor :: DoorState -> String -> (forall s. Sing s -> Door s -> r) -> r
+withDoor ds x f = case ds of
+  Opened -> f SOpened (mkDoor SOpened x "d")
+  Closed -> f SClosed (mkDoor SClosed x "d")
+  Locked -> f SLocked (mkDoor SLocked x "d")
+  
