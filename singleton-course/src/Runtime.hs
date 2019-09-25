@@ -72,3 +72,32 @@ openAnySomeDoor password (MkSomeDoor sing door) = withSingI sing (case openAnyDo
   Nothing -> fromDoor_ door
   Just newDoor -> fromDoor_ newDoor)
 
+
+--
+
+data List a = Nil | Cons a (List a)
+
+data instance Sing (x :: List k) where
+    SNil  :: Sing 'Nil
+    SCons :: Sing x -> Sing xs -> Sing ('Cons x xs)
+
+instance SingKind k => SingKind (List k) where
+    type Demote (List k) = List (Demote k)
+
+    fromSing :: Sing (xs :: List k) -> List (Demote k)
+    fromSing s = case s of
+      SNil -> Nil
+      SCons h t -> Cons (fromSing h) (fromSing t)
+
+    toSing :: List (Demote k) -> SomeSing (List k)
+    toSing Nil = SomeSing SNil
+    toSing (Cons h t) = withSomeSing h (\hsington -> withSomeSing t (\tsing -> SomeSing $ SCons hsington tsing ))
+
+
+game :: List () -> Int
+game list = withSomeSing list (\l -> case l of
+    SNil ->  emptyGame SNil
+    _ -> 9)
+
+emptyGame :: Sing (Nil) -> Int
+emptyGame _ = 0
