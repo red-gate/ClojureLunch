@@ -14,7 +14,8 @@ Vagrant.configure("2") do |config|
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "ubuntu/trusty64"
   config.vm.provider "virtualbox" do |v|
-        v.memory = 4098
+        v.memory = 8192
+        v.cpus = 2
   end
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs

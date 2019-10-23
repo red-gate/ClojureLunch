@@ -26,6 +26,7 @@ data SingDSx :: DoorState -> * where
     SClosedx :: SingDSx Closed
     SLockedx :: SingDSx Locked
 
+
 closeDoor :: Door 'Opened -> Door 'Closed
 closeDoor (UnsafeMkDoor m h) = UnsafeMkDoor m h
 

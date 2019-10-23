@@ -17,8 +17,8 @@ executable singleton-course
   hs-source-dirs:      src
   main-is:             Main.hs
   default-language:    Haskell2010
-  build-depends:       base >= 4.7 && < 5, singletons, text, vector, hmatrix
-  extensions:  DataKinds, GADTs, KindSignatures, RankNTypes, LambdaCase, TypeApplications, TemplateHaskell, TypeFamilies, PolyKinds, InstanceSigs, DeriveGeneric, OverloadedLists, ScopedTypeVariables
+  build-depends:       base >= 4.7 && < 5, singletons, text, vector, hmatrix,  MonadRandom
+  extensions:  DataKinds, GADTs, KindSignatures, RankNTypes, LambdaCase, TypeApplications, TemplateHaskell, TypeFamilies, PolyKinds, InstanceSigs, DeriveGeneric, OverloadedLists, ScopedTypeVariables, BangPatterns, TypeOperators
 
 
 
