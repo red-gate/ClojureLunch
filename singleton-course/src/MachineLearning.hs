@@ -23,6 +23,18 @@ data Network :: Nat -> [Nat] -> Nat -> * where
           -> Network i (h ': hs) o
 infixr 5 :&~
 
+popLayer :: Network inputNetwork (h ': hs) outputNetwork -> (Weights inputNetwork h, Network h hs outputNetwork) 
+popLayer network = case network of
+     (:&~) weights rest -> (weights, rest)
+
+sumWeights :: KnownNat n => KnownNat b => Weights b n -> Weights b n -> Weights b n
+sumWeights (W bias1 nodes1) (W bias2 nodes2) = W (bias1+bias2) (nodes1+nodes2)
+
+sumNetwork :: KnownNat o => KnownNat h => Network h hs o -> Network h hs o -> Network h hs o
+sumNetwork n1 n2 = case (n1, n2) of
+  (O w1, O w2) -> O (sumWeights w1 w2)
+  (w1 :&~ rest1, w2 :&~ rest2) -> (sumWeights w1 w2) :&~ (sumNetwork rest1 rest2)
+
 logistic :: Floating a => a -> a
 logistic x = 1 / (1 + exp (-x))
 
