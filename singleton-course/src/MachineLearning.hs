@@ -23,6 +23,9 @@ data Network :: Nat -> [Nat] -> Nat -> * where
           -> Network i (h ': hs) o
 infixr 5 :&~
 
+data OpaqueNet :: Nat -> Nat -> * where 
+  ONet :: Network i hs o -> OpaqueNet i o
+
 popLayer :: Network inputNetwork (h ': hs) outputNetwork -> (Weights inputNetwork h, Network h hs outputNetwork) 
 popLayer network = case network of
      (:&~) weights rest -> (weights, rest)
@@ -34,6 +37,11 @@ sumNetwork :: KnownNat o => KnownNat h => Network h hs o -> Network h hs o -> Ne
 sumNetwork n1 n2 = case (n1, n2) of
   (O w1, O w2) -> O (sumWeights w1 w2)
   (w1 :&~ rest1, w2 :&~ rest2) -> (sumWeights w1 w2) :&~ (sumNetwork rest1 rest2)
+
+hiddenSing :: Network i hs o -> Sing hs
+hiddenSing n = case n of
+                  O w -> SNil
+                  w :&~ rest -> SCons SNat (hiddenSing rest) 
 
 logistic :: Floating a => a -> a
 logistic x = 1 / (1 + exp (-x))
@@ -58,6 +66,16 @@ runNet = \case
    (w :&~ n') -> \(!v) -> let v' = logistic (runLayer w v)
                           in runNet n' v'
 
+runOpaqueNet :: (KnownNat i, KnownNat o) => OpaqueNet i o -> R i -> R o
+runOpaqueNet (ONet net) = runNet net
+
+numHiddens :: OpaqueNet i o -> Int
+numHiddens (ONet net) = go net
+    where
+      go :: Network i hs o -> Int
+      go (O _) = 0
+      go (_ :&~ r) = 1 + (go r)
+
 randomWeights :: (MonadRandom m, KnownNat i, KnownNat o)
               => m (Weights i o)
 randomWeights = do
@@ -67,16 +85,22 @@ randomWeights = do
         wN = uniformSample s2 (-1) 1
     return $ W wB wN
 
+randomNet' :: forall m i hs o.(MonadRandom m, KnownNat i, KnownNat o)
+           => Sing hs -> m (Network i hs o)
+randomNet' = \case
+  SNil -> O <$> randomWeights
+  SCons SNat rest -> (:&~) <$> randomWeights <*> randomNet' rest
+
 randomNet :: forall m i hs o. (MonadRandom m, KnownNat i, SingI hs, KnownNat o)
           => m (Network i hs o)
-randomNet = go sing
-  where
-    go :: forall h hs'. KnownNat h
-       => Sing hs'
-       -> m (Network h hs' o)
-    go = \case
-        SNil            ->     O <$> randomWeights
-        SNat `SCons` ss -> (:&~) <$> randomWeights <*> go ss
+randomNet = randomNet' sing
+
+randomONet :: (MonadRandom m, KnownNat i, KnownNat o)
+           => Nat
+           -> m (OpaqueNet i o)
+randomONet xs = case toSing xs of
+    SomeSing ss -> _hole
+  
 
 train :: forall i hs o. (KnownNat i, KnownNat o)
       => Double           -- ^ learning rate
