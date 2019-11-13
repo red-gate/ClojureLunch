@@ -9,6 +9,7 @@ import Data.Singletons.TypeLits
 import Numeric.LinearAlgebra.Static
 import System.Environment
 import Text.Read
+import GHC.TypeLits
 
 data Weights i o = W { wBiases :: !(R o)
                      , wNodes  :: !(L o i)
@@ -95,12 +96,15 @@ randomNet :: forall m i hs o. (MonadRandom m, KnownNat i, SingI hs, KnownNat o)
           => m (Network i hs o)
 randomNet = randomNet' sing
 
+
 randomONet :: (MonadRandom m, KnownNat i, KnownNat o)
-           => Nat
-           -> m (OpaqueNet i o)
-randomONet xs = case toSing xs of
-    SomeSing ss -> _hole
-  
+        => Integer
+        -> m (OpaqueNet i o)
+randomONet x = case someNatVal x of
+    Nothing ->  ONet <$> (O <$> randomWeights)
+    Just x -> ONet <$> case x of
+        SomeNat p ->  _hole
+
 
 train :: forall i hs o. (KnownNat i, KnownNat o)
       => Double           -- ^ learning rate
