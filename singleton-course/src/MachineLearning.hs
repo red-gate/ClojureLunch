@@ -100,12 +100,30 @@ randomNet = randomNet' sing
 randomONet :: (MonadRandom m, KnownNat i, KnownNat o)
         => Integer
         -> m (OpaqueNet i o)
-randomONet x = case someNatVal x of
-    Nothing ->  ONet <$> (O <$> randomWeights)
-    Just x -> ONet <$> case x of
-        SomeNat p ->  _hole
+randomONet x = do 
+  hs <- randomLayerSize x
+  case magic hs of
+            --x ->  ONet <$> (O <$> randomWeights)
+            Just(SomeSing sing) ->  ONet <$> (randomNet' sing)
+            _ -> error "User error 6"
 
+magic :: [Integer] -> Maybe (SomeSing [Nat])
+magic xs = case xs of
+  [] -> Just $ SomeSing SNil
+  x : xs -> case someNatVal x of
+    Nothing -> Nothing
+    Just (SomeNat (Proxy :: Proxy n)) -> case magic xs of
+      Nothing -> Nothing
+      Just (SomeSing rs) -> Just (SomeSing (SCons (sing :: Sing n) rs))
 
+randomLayerSize :: (MonadRandom m) => Integer -> m [Integer]
+randomLayerSize n = sequence (replicate (fromInteger n) (getRandom))
+  {-case n of
+            0 -> pure []
+            n -> do
+              i <- getRandom
+              (i :) <$> (randomLayerSize (n-1))
+-}
 train :: forall i hs o. (KnownNat i, KnownNat o)
       => Double           -- ^ learning rate
       -> R i              -- ^ input vector
