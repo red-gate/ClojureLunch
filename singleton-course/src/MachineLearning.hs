@@ -11,6 +11,8 @@ import System.Environment
 import Text.Read
 import GHC.TypeLits
 
+-- Current section: Recap on the Binary Library
+
 data Weights i o = W { wBiases :: !(R o)
                      , wNodes  :: !(L o i)
                      }                      -- an "o x i" layer
@@ -26,6 +28,12 @@ infixr 5 :&~
 
 data OpaqueNet :: Nat -> Nat -> * where 
   ONet :: Network i hs o -> OpaqueNet i o
+
+type OpaqueNet' i o r = (forall hs. Network i hs o -> r) -> r
+
+runOpaqueNet' :: (KnownNat i, KnownNat o) => OpaqueNet' i o (R o) -> R i -> R o
+runOpaqueNet' f r = f (\network -> runNet network r)
+
 
 popLayer :: Network inputNetwork (h ': hs) outputNetwork -> (Weights inputNetwork h, Network h hs outputNetwork) 
 popLayer network = case network of
@@ -105,19 +113,18 @@ randomONet x = do
   case magic hs of
             --x ->  ONet <$> (O <$> randomWeights)
             Just(SomeSing sing) ->  ONet <$> (randomNet' sing)
-            _ -> error "User error 6"
+            _ -> error ("User error " ++ (show x))
 
 magic :: [Integer] -> Maybe (SomeSing [Nat])
 magic xs = case xs of
   [] -> Just $ SomeSing SNil
-  x : xs -> case someNatVal x of
-    Nothing -> Nothing
-    Just (SomeNat (Proxy :: Proxy n)) -> case magic xs of
-      Nothing -> Nothing
-      Just (SomeSing rs) -> Just (SomeSing (SCons (sing :: Sing n) rs))
+  x : xs -> do 
+    (SomeNat (Proxy :: Proxy n)) <- someNatVal x
+    (SomeSing rs) <- magic xs
+    pure (SomeSing (SCons (sing :: Sing n) rs))
 
 randomLayerSize :: (MonadRandom m) => Integer -> m [Integer]
-randomLayerSize n = sequence (replicate (fromInteger n) (getRandom))
+randomLayerSize n = sequence (replicate (fromInteger n) (getRandomR (0, 1000)))
   {-case n of
             0 -> pure []
             n -> do
@@ -207,6 +214,13 @@ main = do
     putStrLn =<< evalRandIO (netTest (fromMaybe 0.25   rate)
                                      (fromMaybe 500000 n   )
                             )
+
+
+test :: IO (OpaqueNet 10 3)
+test = do
+  putStrLn "What hidden layer structure do you want?"
+  hs <- readLn
+  randomONet hs
 
 (!!?) :: [a] -> Int -> Maybe a
 xs !!? i = listToMaybe (drop i xs)
