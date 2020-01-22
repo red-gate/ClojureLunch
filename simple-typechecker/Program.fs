@@ -1,17 +1,61 @@
 ﻿// Abstract syntax for pure functional language
-// We'll need abstraction, application, annymous functions, let bindings
+// We'll need abstraction, application, anonymous functions, let bindings
+
+type Exp = 
+  | Plus
+  | Plus1 of int
+  | Int of int
+  | Var of string
+  | Abs of string * Exp  // fun x -> x* 2
+  | App of Exp * Exp  // f 20
+  | Let of string * Exp * Exp // let x = 20 in x * 30
+
+type Env = Map<string, Exp>
+
+// 20
+let ex1 = Int(20)
+
+// 10 + 20
+let ex2 = App(App(Var("+"),Int(10)), Int(20))
+
+
+// fun x -> x
+let ex3 = Abs("x",Var("x"))
+
+// let id = fun x -> x in id
+let ex4 = Let("id",Abs("x", Var("x")), Var("id"))
+
+let rec eval x env = 
+  match x with
+  | Int n -> x
+  | Var x -> match Map.tryFind x env with
+      | Some x -> x
+      | None -> failwith "Name not found"
+  | App(f,v) -> 
+     let l = eval f env
+     let r = eval v env
+     match l,r with
+     | Plus, Int x -> Plus1 x
+     | Plus1 x, Int y -> Int(x+y)
+     | Abs (n, ex), v -> eval v (Map.add n ex env)
+  | Abs _ -> x
+  | Let (variable, def, exp) -> eval exp (Map.add variable def env)    
+
+let envPlus = Map.ofList [("+", Plus)]
+
+eval ex3 envPlus
 
 // We'll target 
 
-let a = 
-  let id x = x
-  (id 2, id true)
+//let a = 
+//  let id x = x
+//  (id 2, id true)
 
 // but let's start with 
 
-let a = 
-  let id x = x
-  id 2
+//let a = 
+//  let id x = x
+//  id 2
 
 // We'll do this the functinal way (though this makes some things a lot harder)
 //  - typically you'd use mutable slots to represent the substituions that we'll end up doing by rewrites
@@ -41,6 +85,6 @@ let a =
 
 let a = fun x -> x // Abstract
 
-let a : int -> int = (fun x -> x) (fun x -> x) //Apply
+//let a : int -> int = (fun x -> x) (fun x -> x) //Apply
 
 
