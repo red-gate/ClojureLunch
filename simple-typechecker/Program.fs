@@ -108,7 +108,7 @@ let r7 = eval ex7 envPlus
 
 // Let's try
 
-let a = fun x -> x // Abstract
+//let a = fun x -> x // Abstract
 
 //let a : int -> int = (fun x -> x) (fun x -> x) //Apply
 
