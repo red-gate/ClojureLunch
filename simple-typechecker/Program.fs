@@ -13,7 +13,6 @@ and Runtime =
   | Plus1 of int
   | RInt of int
   | RAbs of string * Exp * REnv
-  | RApp of Runtime * Runtime 
   
 and REnv = Map<string, Runtime>
 
@@ -33,25 +32,33 @@ let ex5 = Let("a", Let("x", Int(10), Abs("y", Var("x"))),
                Var("a"))
 
 let ex6 = Let("a", Let("x", Int(10), Abs("y", Var("x"))),
+               Let("x", Int(50), Var("a")))
+
+let ex7 = Let("a", Let("x", Int(10), Abs("y", Var("x"))),
                Let("x", Int(50), App(Var("a"), Int(6))))
 
 let rec eval x env = 
   match x with
-  | Int n -> RInt x
+  | Int n -> RInt n
   | Var x -> match Map.tryFind x env with
-      | Some x -> x
-      | None -> failwith "Name not found"
+              | Some x -> x
+              | None -> failwith "Name not found"
   | App(f,v) -> 
      let l = eval f env
      let r = eval v env
-     match l,r with
-     | Plus, RInt x -> Plus1 x
-     | Plus1 x, RInt y -> RInt(x+y)
-     | RAbs (n, ex), v -> eval v (Map.add n ex env)
-  | Abs (v,body) -> RAbs(n,body, env)
+     apply l r 
+  | Abs (v,body) -> RAbs(v,body, env)
   | Let (variable, def, exp) -> 
        let rdef = eval def env 
        eval exp (Map.add variable rdef env)    
+
+and apply l r =
+  //printf " %A %A \n" l r
+  match l,r with
+  | Plus, RInt x -> Plus1 x
+  | Plus1 x, RInt y -> RInt(x+y)
+  | RAbs (n, ex, cenv), v -> 
+      eval ex (Map.add n v cenv)
 
 let envPlus = Map.ofList [("+", Plus)]
 
@@ -61,6 +68,7 @@ let r3 = eval ex3 envPlus
 let r4 = eval ex4 envPlus
 let r5 = eval ex5 envPlus
 let r6 = eval ex6 envPlus
+let r7 = eval ex7 envPlus
 
 // We'll target 
 
