@@ -28,14 +28,14 @@ let ex3 = Abs("x",Var("x"))
 // let id = fun x -> x in id
 let ex4 = Let("id",Abs("x", Var("x")), Var("id"))
 
-let ex5 = Let("a", Let("x", Int(10), Abs("y", Var("x"))),
-               Var("a"))
+let ex5 = Let("f", Let("x", Int(10), Abs("y", Var("x"))),
+               Var("f"))
 
-let ex6 = Let("a", Let("x", Int(10), Abs("y", Var("x"))),
-               Let("x", Int(50), Var("a")))
+let ex6 = Let("f", Let("x", Int(10), Abs("y", Var("x"))),
+               Let("x", Int(50), Var("f")))
 
-let ex7 = Let("a", Let("x", Int(10), Abs("y", Var("x"))),
-               Let("x", Int(50), App(Var("a"), Int(6))))
+let ex7 = Let("f", Let("x", Int(10), Abs("y", Var("x"))),
+               Let("x", Int(50), App(Var("f"), Int(6))))
 
 let rec eval x env = 
   match x with
