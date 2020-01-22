@@ -59,6 +59,13 @@ and apply l r =
   | Plus1 x, RInt y -> RInt(x+y)
   | RAbs (n, ex, cenv), v -> 
       eval ex (Map.add n v cenv)
+  | RInt _,_ -> failwith "Can't apply an int to something"
+  | Plus, RAbs _ 
+  | Plus1 _, RAbs _ -> failwith "Can't add an abstraction"
+  | Plus, Plus
+  | Plus, Plus1 _
+  | Plus1 _, Plus
+  | Plus1 _, Plus1 _ -> failwith "Can't add Plus"
 
 let envPlus = Map.ofList [("+", Plus)]
 
