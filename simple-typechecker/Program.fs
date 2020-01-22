@@ -2,15 +2,20 @@
 // We'll need abstraction, application, anonymous functions, let bindings
 
 type Exp = 
-  | Plus
-  | Plus1 of int
   | Int of int
   | Var of string
   | Abs of string * Exp  // fun x -> x* 2
   | App of Exp * Exp  // f 20
   | Let of string * Exp * Exp // let x = 20 in x * 30
 
-type Env = Map<string, Exp>
+and Runtime =
+  | Plus
+  | Plus1 of int
+  | RInt of int
+  | RAbs of string * Exp * REnv
+  | RApp of Runtime * Runtime 
+  
+and REnv = Map<string, Runtime>
 
 // 20
 let ex1 = Int(20)
@@ -18,16 +23,21 @@ let ex1 = Int(20)
 // 10 + 20
 let ex2 = App(App(Var("+"),Int(10)), Int(20))
 
-
 // fun x -> x
 let ex3 = Abs("x",Var("x"))
 
 // let id = fun x -> x in id
 let ex4 = Let("id",Abs("x", Var("x")), Var("id"))
 
+let ex5 = Let("a", Let("x", Int(10), Abs("y", Var("x"))),
+               Var("a"))
+
+let ex6 = Let("a", Let("x", Int(10), Abs("y", Var("x"))),
+               Let("x", Int(50), App(Var("a"), Int(6))))
+
 let rec eval x env = 
   match x with
-  | Int n -> x
+  | Int n -> RInt x
   | Var x -> match Map.tryFind x env with
       | Some x -> x
       | None -> failwith "Name not found"
@@ -35,15 +45,22 @@ let rec eval x env =
      let l = eval f env
      let r = eval v env
      match l,r with
-     | Plus, Int x -> Plus1 x
-     | Plus1 x, Int y -> Int(x+y)
-     | Abs (n, ex), v -> eval v (Map.add n ex env)
-  | Abs _ -> x
-  | Let (variable, def, exp) -> eval exp (Map.add variable def env)    
+     | Plus, RInt x -> Plus1 x
+     | Plus1 x, RInt y -> RInt(x+y)
+     | RAbs (n, ex), v -> eval v (Map.add n ex env)
+  | Abs (v,body) -> RAbs(n,body, env)
+  | Let (variable, def, exp) -> 
+       let rdef = eval def env 
+       eval exp (Map.add variable rdef env)    
 
 let envPlus = Map.ofList [("+", Plus)]
 
-eval ex3 envPlus
+let r1 = eval ex1 envPlus
+let r2 = eval ex2 envPlus
+let r3 = eval ex3 envPlus
+let r4 = eval ex4 envPlus
+let r5 = eval ex5 envPlus
+let r6 = eval ex6 envPlus
 
 // We'll target 
 
