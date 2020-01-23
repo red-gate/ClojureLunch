@@ -13,6 +13,11 @@ and Runtime =
   | Plus1 of int
   | RInt of int
   | RAbs of string * Exp * REnv
+  | IF0
+  | IFTrue0
+  | IFTrue1 of Runtime
+  | IFFalse0
+  | IFFalse1
   
 and REnv = Map<string, Runtime>
 
@@ -53,6 +58,14 @@ let ex6 = Let("f", Let("x", Int(10), Abs("y", Var("x"))),
 let ex7 = Let("f", Let("x", Int(10), Abs("y", Var("x"))),
                Let("x", Int(50), App(Var("f"), Int(6))))
 
+// if 0 then 1 else bang
+
+let ex8 = App(App(App(Var("if"), Int(0)), Int(1)), Var("bang"))
+
+// if 3 then 1 else bang
+
+let ex9 = App(App(App(Var("if"), Int(1)), Var("bang")), Int(2))
+
 let rec eval x env = 
   match x with
   | Int n -> RInt n
@@ -68,7 +81,7 @@ let rec eval x env =
        eval exp (Map.add variable rdef env)    
 
 and apply l v env =
-  //printf " %A %A \n" l r
+  printf " %A %A \n" l v
   match l with
   | Plus ->
      let (RInt y) = eval v env
@@ -79,16 +92,25 @@ and apply l v env =
   | RAbs (n, ex, cenv) ->
       let arg = eval v env 
       eval ex (Map.add n arg cenv)
+  | IF0 ->
+      let (RInt y) = eval v env
+      if y = 0 then IFTrue0 else IFFalse0
+  | IFTrue0 -> IFTrue1 (eval v env)
+  | IFTrue1 x -> x
+  | IFFalse0 -> IFFalse1
+  | IFFalse1 -> eval v env
 
-let envPlus = Map.ofList [("+", Plus)]
+let envPlus = Map.ofList [("+", Plus); ("if", IF0)]
 
-let r1 = eval ex1 envPlus
 let r2 = eval ex2 envPlus
+let r1 = eval ex1 envPlus
 let r3 = eval ex3 envPlus
 let r4 = eval ex4 envPlus
 let r5 = eval ex5 envPlus
 let r6 = eval ex6 envPlus
 let r7 = eval ex7 envPlus
+let r8 = eval ex8 envPlus
+let r9 = eval ex9 envPlus
 
 // We'll target 
 
