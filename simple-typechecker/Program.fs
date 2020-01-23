@@ -18,6 +18,8 @@ and Runtime =
   | IFTrue1 of Runtime
   | IFFalse0
   | IFFalse1
+  | Y
+  | Y0 of Exp
   
 and REnv = Map<string, Runtime>
 
@@ -66,6 +68,23 @@ let ex8 = App(App(App(Var("if"), Int(0)), Int(1)), Var("bang"))
 
 let ex9 = App(App(App(Var("if"), Int(1)), Var("bang")), Int(2))
 
+// Z (fun triang' -> fun n -> if n = 0 then 1 else n + triang' (n+-1)) 3
+
+let Z =
+  Abs("f",
+    App(Abs("x", App(Var("f"), Abs("v", App(App(Var("x"), Var("x")), Var("v"))))),
+        Abs("x", App(Var("f"), Abs("v", App(App(Var("x"), Var("x")), Var("v")))))))
+
+let ex10 =
+  Let("Z", Z, 
+          App(
+            App(Var("Z"),
+              Abs("triang'",
+                Abs("n",
+                  App(App(App(Var("if"), Var("n")), Int 0),
+                            App(App(Var("+"), Var("n")), App(Var("triang'"), App(App(Var("+"), Var("n")), Int -1))))))),
+            Int 3))
+
 let rec eval x env = 
   match x with
   | Int n -> RInt n
@@ -102,8 +121,8 @@ and apply l v env =
 
 let envPlus = Map.ofList [("+", Plus); ("if", IF0)]
 
-let r2 = eval ex2 envPlus
 let r1 = eval ex1 envPlus
+let r2 = eval ex2 envPlus
 let r3 = eval ex3 envPlus
 let r4 = eval ex4 envPlus
 let r5 = eval ex5 envPlus
@@ -111,6 +130,7 @@ let r6 = eval ex6 envPlus
 let r7 = eval ex7 envPlus
 let r8 = eval ex8 envPlus
 let r9 = eval ex9 envPlus
+let r10 = eval ex10 envPlus
 
 // We'll target 
 
