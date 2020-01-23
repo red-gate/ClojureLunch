@@ -18,8 +18,6 @@ and Runtime =
   | IFTrue1 of Runtime
   | IFFalse0
   | IFFalse1
-  | Y
-  | Y0 of Exp
   
 and REnv = Map<string, Runtime>
 
