@@ -28,11 +28,27 @@ let ex3 = Abs("x",Var("x"))
 // let id = fun x -> x in id
 let ex4 = Let("id",Abs("x", Var("x")), Var("id"))
 
+// let f = 
+//   let x = 10
+//   fun y -> x
+// f  
 let ex5 = Let("f", Let("x", Int(10), Abs("y", Var("x"))),
                Var("f"))
 
+// let f = 
+//   let x = 10
+//   fun y -> x
+// let x = 50
+// f  
+
 let ex6 = Let("f", Let("x", Int(10), Abs("y", Var("x"))),
                Let("x", Int(50), Var("f")))
+
+// let f = 
+//   let x = 10
+//   fun y -> x
+// let x = 50
+// f 6 
 
 let ex7 = Let("f", Let("x", Int(10), Abs("y", Var("x"))),
                Let("x", Int(50), App(Var("f"), Int(6))))
@@ -45,28 +61,24 @@ let rec eval x env =
               | None -> failwith "Name not found"
   | App(f,v) -> 
      let l = eval f env
-     let r = eval v env
-     apply l r 
+     apply l v env 
   | Abs (v,body) -> RAbs(v,body, env)
   | Let (variable, def, exp) -> 
        let rdef = eval def env 
        eval exp (Map.add variable rdef env)    
 
-and apply l r =
+and apply l v env =
   //printf " %A %A \n" l r
-  match l,r with
-  | Plus, RInt x -> Plus1 x
-  | Plus1 x, RInt y -> RInt(x+y)
-  | RAbs (n, ex, cenv), v -> 
-      eval ex (Map.add n v cenv)
-  // And these are all illegal
-  | RInt _,_ -> failwith "Can't apply an int to something"
-  | Plus, RAbs _ 
-  | Plus1 _, RAbs _ -> failwith "Can't add an abstraction"
-  | Plus, Plus
-  | Plus, Plus1 _
-  | Plus1 _, Plus
-  | Plus1 _, Plus1 _ -> failwith "Can't add Plus"
+  match l with
+  | Plus ->
+     let (RInt y) = eval v env
+     Plus1 y
+  | Plus1 x -> 
+      let (RInt y) = eval v env
+      RInt (x+y)
+  | RAbs (n, ex, cenv) ->
+      let arg = eval v env 
+      eval ex (Map.add n arg cenv)
 
 let envPlus = Map.ofList [("+", Plus)]
 
