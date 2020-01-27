@@ -8,11 +8,11 @@ type Exp =
   | App of Exp * Exp  // f 20
   | Let of string * Exp * Exp // let x = 20 in x * 30
 
-and Runtime =
-  | Plus
-  | Plus1 of int
+type Runtime =
   | RInt of int
   | RAbs of string * Exp * REnv
+  | Plus
+  | Plus1 of int
   | IF0
   | IFTrue0
   | IFTrue1 of Runtime
