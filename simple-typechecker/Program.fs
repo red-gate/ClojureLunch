@@ -162,9 +162,12 @@ let newTypeVar () = TVar  (sprintf "%i" (nextId()))
                  
 // We'll also need type environments and type schemes
 
-// Scheme [Tvar "a"] (TFun (Tvar "a") (Tvar "a") )  - id : a-> a
+// The type of the identity function
+// Scheme (["a"], TFun (TVar "a", TVar "a"))  - id : a-> a
 type Scheme = Scheme of string list * Typ
 
+// An environment with the identity function
+// Map.ofList [("id", Scheme (["a"], TFun (TVar "a", TVar "a")))]
 type TypeEnv = Map<string, Scheme>
 
 type Subst = Map<string, Typ>
@@ -173,7 +176,8 @@ type Subst = Map<string, Typ>
 //  - what's unification (and the most general unifier)
 //  - how do we apply a subsitution to a type/type scheme/type environment
 //  - and compose substituions
-let rec applySub (m : Map <string, Typ>) (t : Typ) : Typ = 
+
+let rec applySub (m : Map<string, Typ>) (t : Typ) : Typ = 
   match t with
     | TVar tname -> match Map.tryFind tname m with
       | Some x -> x
