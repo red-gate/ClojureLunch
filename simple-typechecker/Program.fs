@@ -195,10 +195,11 @@ let rec unify ty1 ty2 =
       let d1 = applySub s d
       let s2 = unify b1 d1
       let x = Map.foldBack (fun k v -> Map.add k (applySub s2 v)) s Map.empty
-      Map.foldBack (Map.add) x s2
+      Map.foldBack Map.add x s2
 
   // TFun _ _ , TInt -> // fail 
 
+let subst = unify (TFun(TVar("a"), TVar("b"))) (TFun(TVar("b"), TInt))
 
 // instantiate to get fresh variables when we look something up
 // We can now put the identity in the type environment and look it up
