@@ -142,19 +142,63 @@ let r10 = eval ex10 envPlus
 //  let id x = x
 //  id 2
 
-// We'll do this the functinal way (though this makes some things a lot harder)
+// We'll do this the functional way (though this makes some things a lot harder)
 //  - typically you'd use mutable slots to represent the substituions that we'll end up doing by rewrites
 
 // Define the type representing types
+type Typ =  TVar of string
+          | TInt
+          | TFun of Typ * Typ
 
 // And a means to get new type variables
+let private counter = ref 0
 
+let nextId () = 
+  let id = !counter
+  counter := !counter + 1
+  id
+  
+let newTypeVar () = TVar  (sprintf "%i" (nextId()))
+                 
 // We'll also need type environments and type schemes
+
+// Scheme [Tvar "a"] (TFun (Tvar "a") (Tvar "a") )  - id : a-> a
+type Scheme = Scheme of string list * Typ
+
+type TypeEnv = Map<string, Scheme>
+
+type Subst = Map<string, Typ>
 
 // The basic technique requires unification and substitution so let's write those on some simple examples
 //  - what's unification (and the most general unifier)
 //  - how do we apply a subsitution to a type/type scheme/type environment
 //  - and compose substituions
+let rec applySub (m : Map <string, Typ>) (t : Typ) : Typ = 
+  match t with
+    | TVar tname -> match Map.tryFind tname m with
+      | Some x -> x
+      | None -> t
+    | TFun (x,y) -> TFun(applySub m x, applySub m y) 
+    | _ -> t
+
+
+let rec unify ty1 ty2 =
+  match ty1, ty2 with
+  | TInt, TInt -> Map.empty
+  | TVar s, TInt -> Map.add s TInt Map.empty
+  | TInt, TVar s -> Map.add s TInt Map.empty
+  | TVar s, TVar t when s=t -> Map.empty
+  | TVar s, TVar t -> Map.add s ty2 Map.empty
+  | TFun (a,b), TFun (c,d) -> 
+      let s = unify a c 
+      let b1 = applySub s b 
+      let d1 = applySub s d
+      let s2 = unify b1 d1
+      let x = Map.foldBack (fun k v -> Map.add k (applySub s2 v)) s Map.empty
+      Map.foldBack (Map.add) x s2
+
+  // TFun _ _ , TInt -> // fail 
+
 
 // instantiate to get fresh variables when we look something up
 // We can now put the identity in the type environment and look it up
