@@ -180,10 +180,16 @@ type Subst = Map<string, Typ>
 let rec applySub (m : Map<string, Typ>) (t : Typ) : Typ = 
   match t with
     | TVar tname -> match Map.tryFind tname m with
-      | Some x -> x
-      | None -> t
+                      | Some x -> x
+                      | None -> t
     | TFun (x,y) -> TFun(applySub m x, applySub m y) 
     | _ -> t
+
+let rec occurs v exp =
+  match exp with
+  | TVar t -> v = t
+  | TInt -> false
+  | TFun(x,y) -> (occurs v x) || (occurs v y)
 
 
 let rec unify ty1 ty2 =
@@ -200,16 +206,50 @@ let rec unify ty1 ty2 =
       let s2 = unify b1 d1
       let x = Map.foldBack (fun k v -> Map.add k (applySub s2 v)) s Map.empty
       Map.foldBack Map.add x s2
+  | TVar s, TFun _ when not (occurs s ty2) ->
+      Map.add s ty2 Map.empty
+  | TFun _, TVar s when not (occurs s ty2) ->
+      Map.add s ty2 Map.empty
+  | _, _ -> failwith "Incompatible types"
 
   // TFun _ _ , TInt -> // fail 
 
 let subst = unify (TFun(TVar("a"), TVar("b"))) (TFun(TVar("b"), TInt))
 
+let sybst2 = unify (TVar "a") (TFun ((TVar "a"), (TVar "b")))
+
 // instantiate to get fresh variables when we look something up
 // We can now put the identity in the type environment and look it up
 
+let instantiate (s : Scheme) =
+  match s with
+  | Scheme (vars, typ) -> 
+    let subst = vars |> List.map (fun x -> (x, newTypeVar()) )
+                |> Map.ofList
+    applySub subst typ
+
+let inst1 = instantiate (Scheme (["a"], TFun (TVar "a", TVar "a")) )
+
 // generalise to make a schema when we let bind something
+let rec typeVariables t = 
+ match t with 
+ | TVar s -> Set.singleton s
+ | TInt -> Set.empty
+ | TFun (t1, t2) -> Set.union (typeVariables t1) (typeVariables t2)
+ 
+let schemeFreeVariables (s : Scheme )  = 
+  match s with 
+  | Scheme (vars, typ) -> Set.difference (typeVariables typ) (Set.ofList vars)
+
+let freeTypeVariables (e : TypeEnv) =
+  Seq.foldBack (fun (KeyValue(_, scheme)) state -> Set.union (schemeFreeVariables scheme) state) e Set.empty
+
+let generalise _ _ = failwith "To implement"
+
 // We can now generalise the identity function
+
+let env = Map.ofList([ ("f", Scheme(["a"], TFun(TVar "a", TVar "b")))])
+generalise (TFun(TVar "a", TVar "b")) env
 
 // Now we just put it all together
 
