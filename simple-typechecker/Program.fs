@@ -216,7 +216,7 @@ let rec unify ty1 ty2 =
 
 let subst = unify (TFun(TVar("a"), TVar("b"))) (TFun(TVar("b"), TInt))
 
-let sybst2 = unify (TVar "a") (TFun ((TVar "a"), (TVar "b")))
+//let sybst2 = unify (TVar "a") (TFun ((TVar "a"), (TVar "b")))
 
 // instantiate to get fresh variables when we look something up
 // We can now put the identity in the type environment and look it up
@@ -244,12 +244,16 @@ let schemeFreeVariables (s : Scheme )  =
 let freeTypeVariables (e : TypeEnv) =
   Seq.foldBack (fun (KeyValue(_, scheme)) state -> Set.union (schemeFreeVariables scheme) state) e Set.empty
 
-let generalise _ _ = failwith "To implement"
+let generalise env t =
+  let fvEnv = freeTypeVariables env
+  let fvT = typeVariables t
+  Scheme( List.ofSeq (Set.difference fvT fvEnv), t)
 
 // We can now generalise the identity function
 
 let env = Map.ofList([ ("f", Scheme(["a"], TFun(TVar "a", TVar "b")))])
-generalise (TFun(TVar "a", TVar "b")) env
+
+let res = generalise env (TFun(TVar "a", TVar "b")) 
 
 // Now we just put it all together
 
@@ -261,4 +265,33 @@ generalise (TFun(TVar "a", TVar "b")) env
 
 //let a : int -> int = (fun x -> x) (fun x -> x) //Apply
 
+let rec ti (env : TypeEnv) (exp : Exp) : Subst * Typ =
+  match exp with 
+  | Int n -> (Map.empty, TInt)
+  | Var x -> match Map.tryFind x env with
+              | None -> failwith "nope"
+              | Some s -> (Map.empty, instantiate s)
+  | Abs(x,e) -> 
+       let envWithoutX = Map.remove x env
+       let newTv = newTypeVar()
+       let (subst, Tbody) = ti (Map.add x (Scheme([], newTv)) envWithoutX) e
+       let newSubst = match newTv with 
+                        | TVar newTvName -> (Map.remove newTvName subst)
+       let functionType = TFun(applySub subst newTv, Tbody)
+       newSubst, functionType
+  | Let(x, boundExpr, body) -> 
+      let (s1, t1) = ti env boundExpr
+      let scheme1 = generalise env t1
+      let cleanEnv = Map.remove x env
+      let newEnv = Map.add x scheme1 cleanEnv
+      ti (applySub s1 newEnv) body
+          
+         
 
+let envWithid = Map.ofList([ ("id", Scheme(["a"], TFun(TVar "a", TVar "a")))])
+
+ti envWithid (Var "id")
+
+ti Map.empty (Abs("x",Var "x")) 
+
+ti Map.empty (Abs("x",Int 2)) 
