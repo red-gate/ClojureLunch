@@ -185,6 +185,14 @@ let rec applySub (m : Map<string, Typ>) (t : Typ) : Typ =
     | TFun (x,y) -> TFun(applySub m x, applySub m y) 
     | _ -> t
 
+let applySubToScheme subst (Scheme(vars, body)) =
+  let newSub = List.foldBack Map.remove vars subst
+  Scheme (vars, applySub newSub body )
+
+let applySubToEnv (m : Subst) (e : TypeEnv) : TypeEnv =
+  Map.map (fun _ v -> applySubToScheme m v) e
+
+
 let rec occurs v exp =
   match exp with
   | TVar t -> v = t
@@ -255,6 +263,9 @@ let env = Map.ofList([ ("f", Scheme(["a"], TFun(TVar "a", TVar "b")))])
 
 let res = generalise env (TFun(TVar "a", TVar "b")) 
 
+let composeSubstition outer inner = 
+  Map.foldBack (fun k v state -> Map.add k (applySub outer v) state) inner outer // handcrafted union
+
 // Now we just put it all together
 
 // The typecheck worker function will return a type and a substitution
@@ -281,11 +292,19 @@ let rec ti (env : TypeEnv) (exp : Exp) : Subst * Typ =
        newSubst, functionType
   | Let(x, boundExpr, body) -> 
       let (s1, t1) = ti env boundExpr
-      let scheme1 = generalise env t1
+      let scheme1 = generalise (applySubToEnv s1 env) t1
       let cleanEnv = Map.remove x env
       let newEnv = Map.add x scheme1 cleanEnv
-      ti (applySub s1 newEnv) body
-          
+      let (s2, t2) = ti (applySubToEnv s1 newEnv) body
+      (composeSubstition s2 s1,t2)
+  | App(e1, e2) -> 
+      let (s1, t1) = ti env e1
+      let (s2, t2) = ti (applySubToEnv s1 env) e2
+      let tv = newTypeVar ()
+      let s3 = unify (applySub s2 t1) (TFun(t2,tv))
+      (composeSubstition s3 (composeSubstition s2 s1), applySub s3 tv)
+
+
          
 
 let envWithid = Map.ofList([ ("id", Scheme(["a"], TFun(TVar "a", TVar "a")))])
@@ -295,3 +314,7 @@ ti envWithid (Var "id")
 ti Map.empty (Abs("x",Var "x")) 
 
 ti Map.empty (Abs("x",Int 2)) 
+
+ti Map.empty (Let("id",Abs ("x", Var "x"), Var "id" )) 
+
+ti Map.empty (Let("id",Abs ("x", Var "x"), App (Var "id", Int 3) )) 
