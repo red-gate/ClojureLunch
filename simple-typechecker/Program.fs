@@ -216,9 +216,10 @@ let rec unify ty1 ty2 =
       Map.foldBack Map.add x s2
   | TVar s, TFun _ when not (occurs s ty2) ->
       Map.add s ty2 Map.empty
-  | TFun _, TVar s when not (occurs s ty2) ->
-      Map.add s ty2 Map.empty
-  | _, _ -> failwith "Incompatible types"
+  | TFun _, TVar s when not (occurs s ty1) ->
+      Map.add s ty1 Map.empty
+  | _, _ -> printf "%A %A" ty1 ty2
+            failwith "Incompatible types"
 
   // TFun _ _ , TInt -> // fail 
 
@@ -255,7 +256,7 @@ let freeTypeVariables (e : TypeEnv) =
 let generalise env t =
   let fvEnv = freeTypeVariables env
   let fvT = typeVariables t
-  Scheme( List.ofSeq (Set.difference fvT fvEnv), t)
+  Scheme( [], t)
 
 // We can now generalise the identity function
 
@@ -309,12 +310,18 @@ let rec ti (env : TypeEnv) (exp : Exp) : Subst * Typ =
 
 let envWithid = Map.ofList([ ("id", Scheme(["a"], TFun(TVar "a", TVar "a")))])
 
-ti envWithid (Var "id")
+snd (ti envWithid (Var "id"))
 
-ti Map.empty (Abs("x",Var "x")) 
+snd (ti Map.empty (Abs("x",Var "x")) )
 
-ti Map.empty (Abs("x",Int 2)) 
+snd(ti Map.empty (Abs("x",Int 2)) )
 
-ti Map.empty (Let("id",Abs ("x", Var "x"), Var "id" )) 
+snd(ti Map.empty (Let("id",Abs ("x", Var "x"), Var "id" )) )
 
-ti Map.empty (Let("id",Abs ("x", Var "x"), App (Var "id", Int 3) )) 
+snd (ti Map.empty (Let("id",Abs ("x", Var "x"), App (Var "id", Int 3) )))
+
+snd (ti Map.empty (Let("id",Abs ("x", Var "x"),(App(App(Abs("p", Abs("q", Var("q"))),App(Var "id", Int 3)),Var "id" )))))
+
+let id = fun x -> x
+(fun p q -> q) (id 3) id
+
