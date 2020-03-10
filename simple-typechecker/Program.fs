@@ -7,6 +7,7 @@ type Exp =
   | Abs of string * Exp  // fun x -> x* 2
   | App of Exp * Exp  // f 20
   | Let of string * Exp * Exp 
+  | LetRec of string * Exp * Exp 
 
 type Runtime =
   | RInt of int
@@ -281,7 +282,7 @@ let rec ti (env : TypeEnv) (exp : Exp) : Subst * Typ =
   match exp with 
   | Int n -> (Map.empty, TInt)
   | Var x -> match Map.tryFind x env with
-              | None -> failwith "nope"
+              | None -> failwith (sprintf "nope %A" x)
               | Some s -> (Map.empty, instantiate s)
   | Abs(x,e) -> 
        let envWithoutX = Map.remove x env
@@ -304,6 +305,15 @@ let rec ti (env : TypeEnv) (exp : Exp) : Subst * Typ =
       let tv = newTypeVar ()
       let s3 = unify (applySub s2 t1) (TFun(t2,tv))
       (composeSubstition s3 (composeSubstition s2 s1), applySub s3 tv)
+  | LetRec(x, boundExpr, body) -> 
+      let newTv = newTypeVar()
+      let envWithBinding = Map.add x (Scheme([], newTv)) env
+      let (s1, t1) = ti envWithBinding boundExpr
+      let scheme1 = generalise (applySubToEnv s1 env) t1
+      let cleanEnv = Map.remove x env
+      let newEnv = Map.add x scheme1 cleanEnv
+      let (s2, t2) = ti (applySubToEnv s1 newEnv) body
+      (composeSubstition s2 s1,t2)
 
 let envWithid = Map.ofList([ ("id", Scheme(["a"], TFun(TVar "a", TVar "a")))])
 
@@ -319,3 +329,31 @@ snd (ti Map.empty (Let("id",Abs ("x", Var "x"), App (Var "id", Int 3) )))
 
 snd (ti Map.empty (Let("id",Abs ("x", Var "x"),(App(App(Abs("p", Abs("q", Var("q"))),App(Var "id", Int 3)),Var "id" )))))
 
+// Type check a recursive function
+
+let rec f = fun x -> if x = 0 then 0 else 1 + f(x-1)
+
+let rec bottom = fun x -> bottom x
+
+let envWithIfAndPlus = 
+  Map.ofList([ 
+    ("+", Scheme([], TFun(TInt, TFun(TInt, TInt)))); 
+    ("if", Scheme(["a"], TFun(TInt, TFun(TVar "a", TFun(TVar "a", TVar "a")))) )
+   ])
+
+let recursive = 
+ LetRec("f",
+  Abs("x", App(App (App(Var "if", Var "x"), Int 0), 
+       App(App(Var "+", Int 1), App(Var "f", App(App(Var "+", Int 1), Var "x"))))),
+  Var "f")
+
+snd (ti envWithIfAndPlus recursive)
+
+let bottom = 
+ LetRec("f",
+  Abs("x", App(Var "f", Var "x")),
+  Var "f")
+
+snd (ti envWithIfAndPlus bottom)
+
+// bind f to a
