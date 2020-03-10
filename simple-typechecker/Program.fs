@@ -6,7 +6,7 @@ type Exp =
   | Var of string
   | Abs of string * Exp  // fun x -> x* 2
   | App of Exp * Exp  // f 20
-  | Let of string * Exp * Exp // let x = 20 in x * 30
+  | Let of string * Exp * Exp 
 
 type Runtime =
   | RInt of int
@@ -256,7 +256,7 @@ let freeTypeVariables (e : TypeEnv) =
 let generalise env t =
   let fvEnv = freeTypeVariables env
   let fvT = typeVariables t
-  Scheme( [], t)
+  Scheme(List.ofSeq (Set.difference fvT fvEnv), t)
 
 // We can now generalise the identity function
 
@@ -305,9 +305,6 @@ let rec ti (env : TypeEnv) (exp : Exp) : Subst * Typ =
       let s3 = unify (applySub s2 t1) (TFun(t2,tv))
       (composeSubstition s3 (composeSubstition s2 s1), applySub s3 tv)
 
-
-         
-
 let envWithid = Map.ofList([ ("id", Scheme(["a"], TFun(TVar "a", TVar "a")))])
 
 snd (ti envWithid (Var "id"))
@@ -321,7 +318,4 @@ snd(ti Map.empty (Let("id",Abs ("x", Var "x"), Var "id" )) )
 snd (ti Map.empty (Let("id",Abs ("x", Var "x"), App (Var "id", Int 3) )))
 
 snd (ti Map.empty (Let("id",Abs ("x", Var "x"),(App(App(Abs("p", Abs("q", Var("q"))),App(Var "id", Int 3)),Var "id" )))))
-
-let id = fun x -> x
-(fun p q -> q) (id 3) id
 
