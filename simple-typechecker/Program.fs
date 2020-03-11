@@ -315,25 +315,23 @@ let rec ti (env : TypeEnv) (exp : Exp) : Subst * Typ =
       let (s2, t2) = ti (applySubToEnv s1 newEnv) body
       (composeSubstition s2 s1,t2)
 
+let typecheckInEnv exp env = 
+  snd (ti env exp)
+
 let envWithid = Map.ofList([ ("id", Scheme(["a"], TFun(TVar "a", TVar "a")))])
 
-snd (ti envWithid (Var "id"))
-
-snd (ti Map.empty (Abs("x",Var "x")) )
-
-snd(ti Map.empty (Abs("x",Int 2)) )
-
-snd(ti Map.empty (Let("id",Abs ("x", Var "x"), Var "id" )) )
-
-snd (ti Map.empty (Let("id",Abs ("x", Var "x"), App (Var "id", Int 3) )))
-
-snd (ti Map.empty (Let("id",Abs ("x", Var "x"),(App(App(Abs("p", Abs("q", Var("q"))),App(Var "id", Int 3)),Var "id" )))))
+typecheckInEnv (Var "id") envWithid
+typecheckInEnv (Abs("x",Var "x")) Map.empty
+typecheckInEnv (Abs("x",Int 2)) Map.empty
+typecheckInEnv (Let("id",Abs ("x", Var "x"), Var "id" )) Map.empty
+typecheckInEnv (Let("id",Abs ("x", Var "x"), App (Var "id", Int 3) )) Map.empty
+typecheckInEnv (Let("id",Abs ("x", Var "x"),(App(App(Abs("p", Abs("q", Var("q"))),App(Var "id", Int 3)),Var "id" )))) Map.empty
 
 // Type check a recursive function
 
-let rec f = fun x -> if x = 0 then 0 else 1 + f(x-1)
+//let rec f = fun x -> if x = 0 then 0 else 1 + f(x-1)
 
-let rec bottom = fun x -> bottom x
+//let rec bottom = fun x -> bottom x
 
 let envWithIfAndPlus = 
   Map.ofList([ 
@@ -347,16 +345,16 @@ let recursive =
        App(App(Var "+", Int 1), App(Var "f", App(App(Var "+", Int 1), Var "x"))))),
   Var "f")
 
-snd (ti envWithIfAndPlus recursive)
+typecheckInEnv recursive envWithIfAndPlus
 
 let bottom = 
  LetRec("f",
   Abs("x", App(Var "f", Var "x")),
   Var "f")
 
-snd (ti envWithIfAndPlus bottom)
+typecheckInEnv bottom envWithIfAndPlus
 
-// And we can do recursiove value bindings too?
+// And we can do recursive value bindings too?
 
 // F# checks this
 
