@@ -188,7 +188,7 @@ let rec applySub (m : Map<string, Typ>) (t : Typ) : Typ =
                       | Some x -> x
                       | None -> t
     | TFun (x,y) -> TFun(applySub m x, applySub m y) 
-    | TRecord m' -> Map.map(z, x => applySub m x), m')
+//    | TRecord m' -> Map.map(z, x => applySub m x), m')
     | _ -> t
 
 let applySubToScheme subst (Scheme(vars, body)) =
@@ -362,5 +362,19 @@ typecheckInEnv (LetRec("f",
 
 //type Foo = { foo: Foo}
 //let rec x = { foo= x }
-let r = Record (Map.ofList([ ("foo", Var "x") ]))
-typecheckInEnv (LetRec("x", r, (Var "x"))) envWithIfAndPlus
+
+//let r = Record (Map.ofList([ ("foo", Var "x") ]))
+//typecheckInEnv (LetRec("x", r, (Var "x"))) envWithIfAndPlus
+
+open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Quotations.Patterns
+open Microsoft.FSharp.Quotations.DerivedPatterns
+
+let rec translate expr = 
+  match expr with
+  | Application (exp1, exp2) -> App(translate exp1, translate exp2)
+  | Let (var, exp1, exp2) -> Let(var.Name, translate exp1, translate exp2)
+  | Lambda (x, exp1) -> Abs(x.Name, translate exp1)
+  | Var var -> Exp.Var(var.Name)
+  | _ -> failwithf "Can't handle %A " expr
+
