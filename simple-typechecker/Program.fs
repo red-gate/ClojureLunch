@@ -7,7 +7,9 @@ type Exp =
   | Abs of string * Exp  // fun x -> x* 2
   | App of Exp * Exp  // f 20
   | Let of string * Exp * Exp 
-  | LetRec of string * Exp * Exp 
+  | LetRec of string * Exp * Exp
+  | Record of Rec 
+and Rec = Map<string, Exp>
 
 type Runtime =
   | RInt of int
@@ -150,6 +152,8 @@ let r10 = eval ex10 envPlus
 type Typ =  TVar of string
           | TInt
           | TFun of Typ * Typ
+          | TRecord of TRec
+and TRec = Map<string, Typ>
 
 // And a means to get new type variables
 let private counter = ref 0
@@ -184,6 +188,7 @@ let rec applySub (m : Map<string, Typ>) (t : Typ) : Typ =
                       | Some x -> x
                       | None -> t
     | TFun (x,y) -> TFun(applySub m x, applySub m y) 
+    | TRecord m' -> Map.map(z, x => applySub m x), m')
     | _ -> t
 
 let applySubToScheme subst (Scheme(vars, body)) =
@@ -305,14 +310,14 @@ let rec ti (env : TypeEnv) (exp : Exp) : Subst * Typ =
       let tv = newTypeVar ()
       let s3 = unify (applySub s2 t1) (TFun(t2,tv))
       (composeSubstition s3 (composeSubstition s2 s1), applySub s3 tv)
-  | LetRec(x, boundExpr, body) -> 
-      let newTv = newTypeVar()
-      let envWithBinding = Map.add x (Scheme([], newTv)) env
-      let (s1, t1) = ti envWithBinding boundExpr
+  | LetRec(x, boundExpr, body) ->   
+      let tv = newTypeVar ()
+      let newEnv = Map.add x (Scheme([],tv)) env
+      let (s1, t1) = ti newEnv boundExpr
       let scheme1 = generalise (applySubToEnv s1 env) t1
       let cleanEnv = Map.remove x env
-      let newEnv = Map.add x scheme1 cleanEnv
-      let (s2, t2) = ti (applySubToEnv s1 newEnv) body
+      let newEnv' = Map.add x scheme1 cleanEnv
+      let (s2, t2) = ti (applySubToEnv s1 newEnv') body
       (composeSubstition s2 s1,t2)
 
 let typecheckInEnv exp env = 
@@ -339,24 +344,23 @@ let envWithIfAndPlus =
     ("if", Scheme(["a"], TFun(TInt, TFun(TVar "a", TFun(TVar "a", TVar "a")))) )
    ])
 
-let recursive = 
- LetRec("f",
-  Abs("x", App(App (App(Var "if", Var "x"), Int 0), 
-       App(App(Var "+", Int 1), App(Var "f", App(App(Var "+", Int 1), Var "x"))))),
-  Var "f")
-
-typecheckInEnv recursive envWithIfAndPlus
-
-let bottom = 
- LetRec("f",
-  Abs("x", App(Var "f", Var "x")),
-  Var "f")
-
-typecheckInEnv bottom envWithIfAndPlus
+typecheckInEnv (LetRec("x",Abs ("x", Var "x"), Var "x" )) envWithIfAndPlus
+typecheckInEnv (LetRec("bottom",Abs ("x", App(Var "bottom", Var "x")), Var "bottom" )) envWithIfAndPlus
+typecheckInEnv (LetRec("f", 
+  Abs("x", App(App(App(Var "if", Var "x"), Int 0), 
+    App(App(Var "+", Int 1), 
+      App(Var "f", 
+        App(App(Var "+", Var "x"), Int -1)
+      )
+    )
+  )), Var "f")) envWithIfAndPlus
 
 // And we can do recursive value bindings too?
+
 
 // F# checks this
 
 //type Foo = { foo: Foo}
 //let rec x = { foo= x }
+let r = Record (Map.ofList([ ("foo", Var "x") ]))
+typecheckInEnv (LetRec("x", r, (Var "x"))) envWithIfAndPlus
