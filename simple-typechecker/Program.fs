@@ -356,4 +356,9 @@ let bottom =
 
 snd (ti envWithIfAndPlus bottom)
 
-// bind f to a
+// And we can do recursiove value bindings too?
+
+// F# checks this
+
+//type Foo = { foo: Foo}
+//let rec x = { foo= x }
