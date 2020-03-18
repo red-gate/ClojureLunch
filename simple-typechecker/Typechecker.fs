@@ -22,7 +22,7 @@ type Typ =
     | TVar of string
     | TInt
     | TFun of Typ * Typ
-    | TRecord of TRec
+    | T of TRec
 
 and TRec = Map<string, Typ>
 
@@ -60,7 +60,7 @@ let rec applySub (m: Map<string, Typ>) (t: Typ): Typ =
         | Some x -> x
         | None -> t
     | TFun(x, y) -> TFun(applySub m x, applySub m y)
-    //    | TRecord m' -> Map.map(z, x => applySub m x), m')
+    | T m' -> T(Map.map (fun _ x -> applySub m x) m')
     | _ -> t
 
 let applySubToScheme subst (Scheme(vars, body)) =
@@ -156,6 +156,7 @@ let composeSubstition outer inner =
 //let a : int -> int = (fun x -> x) (fun x -> x) //Apply
 
 let rec ti (env: TypeEnv) (exp: Exp): Subst * Typ =
+    printf "Typechecinkg: %A" exp
     match exp with
     | Int n -> (Map.empty, TInt)
     | Var x ->
@@ -195,5 +196,17 @@ let rec ti (env: TypeEnv) (exp: Exp): Subst * Typ =
         let newEnv' = Map.add x scheme1 cleanEnv
         let (s2, t2) = ti (applySubToEnv s1 newEnv') body
         (composeSubstition s2 s1, t2)
+    | Record(r) ->
+        Map.foldBack (fun k v s -> s ) r (Map.empty, T Map.empty) // ( substituitions,  labels->types) -- fixme
+    | _ -> failwithf "%A" exp
+
+
+
+ > Record "x" -> 2 * 3, "y" -> fun x -> x
+      > ti 2*3
+      < TInt, s1
+      > ti fun x -> x
+      < TFun(..), s2
+ <  s1 combined with s2,   T "x" -> TInt "y" -> TFun(..)
 
 let typecheckInEnv exp env = snd (ti env exp)
