@@ -7,6 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Expressions.fs" />
+    <Compile Include="Examples.fs" />
+    <Compile Include="Translate.fs" />
+    <Compile Include="Runtime.fs" />
+    <Compile Include="Evaluator.fs" />
+    <Compile Include="EvaluatorExamples.fs" />
+    <Compile Include="Typechecker.fs" />
+    <Compile Include="TypecheckerExamples.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
