@@ -44,5 +44,10 @@ typecheckInEnv
 //type Foo = { foo: Foo}
 //let rec x = { foo= x }
 
-//let r = Record (Map.ofList([ ("foo", Var "x") ]))
-//typecheckInEnv (LetRec("x", r, (Var "x"))) envWithIfAndPlus
+let r =
+    Record
+        (Map.ofList
+            ([ ("foo", Int 23)
+               ("bar", Abs("x", Var("x"))) ]))
+
+typecheckInEnv r Map.empty

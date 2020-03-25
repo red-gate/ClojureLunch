@@ -197,16 +197,16 @@ let rec ti (env: TypeEnv) (exp: Exp): Subst * Typ =
         let (s2, t2) = ti (applySubToEnv s1 newEnv') body
         (composeSubstition s2 s1, t2)
     | Record(r) ->
-        Map.foldBack (fun k v s -> s ) r (Map.empty, T Map.empty) // ( substituitions,  labels->types) -- fixme
+        Map.foldBack (fun k v (subst, (T mapTypes)) ->
+            let (s, t) = ti env v
+            (composeSubstition s subst, T(Map.add k t mapTypes))) r (Map.empty, T Map.empty) // ( substituitions,  labels->types) -- fixme
     | _ -> failwithf "%A" exp
 
-
-
- > Record "x" -> 2 * 3, "y" -> fun x -> x
-      > ti 2*3
-      < TInt, s1
-      > ti fun x -> x
-      < TFun(..), s2
- <  s1 combined with s2,   T "x" -> TInt "y" -> TFun(..)
+// > Record "x" -> 2 * 3, "y" -> fun x -> x
+//     > ti 2*3
+//     < TInt, s1
+//     > ti fun x -> x
+//     < TFun(..), s2
+// <  s1 combined with s2,   T "x" -> TInt "y" -> TFun(..)
 
 let typecheckInEnv exp env = snd (ti env exp)
