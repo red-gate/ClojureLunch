@@ -6,3 +6,5 @@
 #load "evaluatorexamples.fs"
 #load "typechecker.fs"
 #load "typecheckerexamples.fs"
+
+open Expressions
