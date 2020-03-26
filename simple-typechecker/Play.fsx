@@ -8,3 +8,5 @@
 #load "typecheckerexamples.fs"
 
 open Expressions
+open Typechecker
+open TypecheckerExamples
