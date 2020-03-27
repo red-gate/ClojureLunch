@@ -7,6 +7,8 @@
 #load "typechecker.fs"
 #load "typecheckerexamples.fs"
 
+open Translate
 open Expressions
+open Examples
 open Typechecker
 open TypecheckerExamples
