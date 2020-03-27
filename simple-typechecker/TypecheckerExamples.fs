@@ -51,3 +51,33 @@ let r =
                ("bar", Abs("x", Var("x"))) ]))
 
 typecheckInEnv r Map.empty
+
+let r2 =
+    Let
+        ("f", Abs("x", Var("x")),
+         Record
+             (Map.ofList
+                 ([ ("foo", Int 23)
+                    ("bar", App(Var "f", Int 34)) ])))
+
+typecheckInEnv r2 Map.empty
+
+let r3 =
+    Abs
+        ("f",
+         Record
+             (Map.ofList
+                 ([ ("a", App(Var "f", Abs("x", Var("x"))))
+                    ("b", App(Var "f", Int 34)) ])))
+
+typecheckInEnv r3 Map.empty
+
+let r4 =
+    Record
+        (Map.ofList
+            ([ ("a", App(Var "f", Abs("x", Var("x"))))
+               ("b", App(Var "f", Int 34)) ]))
+
+let newTy = newTypeVar()
+
+ti (Map.add "f" (Scheme([], newTy)) Map.empty) r4

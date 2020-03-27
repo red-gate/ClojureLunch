@@ -156,51 +156,54 @@ let composeSubstition outer inner =
 //let a : int -> int = (fun x -> x) (fun x -> x) //Apply
 
 let rec ti (env: TypeEnv) (exp: Exp): Subst * Typ =
-    printf "Typechecinkg: %A" exp
-    match exp with
-    | Int n -> (Map.empty, TInt)
-    | Var x ->
-        match Map.tryFind x env with
-        | None -> failwith (sprintf "nope %A" x)
-        | Some s -> (Map.empty, instantiate s)
-    | Abs(x, e) ->
-        let envWithoutX = Map.remove x env
-        let newTv = newTypeVar()
-        let (subst, Tbody) = ti (Map.add x (Scheme([], newTv)) envWithoutX) e
+    printf "Typechecking: %A in %A\n" exp env
+    let (subst, inferredType) = 
+      match exp with
+      | Int n -> (Map.empty, TInt)
+      | Var x ->
+          match Map.tryFind x env with
+          | None -> failwith (sprintf "nope %A" x)
+          | Some s -> (Map.empty, instantiate s)
+      | Abs(x, e) ->
+          let envWithoutX = Map.remove x env
+          let newTv = newTypeVar()
+          let (subst, Tbody) = ti (Map.add x (Scheme([], newTv)) envWithoutX) e
 
-        let newSubst =
+          let newSubst =
             match newTv with
             | TVar newTvName -> (Map.remove newTvName subst)
 
-        let functionType = TFun(applySub subst newTv, Tbody)
-        newSubst, functionType
-    | Let(x, boundExpr, body) ->
-        let (s1, t1) = ti env boundExpr
-        let scheme1 = generalise (applySubToEnv s1 env) t1
-        let cleanEnv = Map.remove x env
-        let newEnv = Map.add x scheme1 cleanEnv
-        let (s2, t2) = ti (applySubToEnv s1 newEnv) body
-        (composeSubstition s2 s1, t2)
-    | App(e1, e2) ->
-        let (s1, t1) = ti env e1
-        let (s2, t2) = ti (applySubToEnv s1 env) e2
-        let tv = newTypeVar()
-        let s3 = unify (applySub s2 t1) (TFun(t2, tv))
-        (composeSubstition s3 (composeSubstition s2 s1), applySub s3 tv)
-    | LetRec(x, boundExpr, body) ->
-        let tv = newTypeVar()
-        let newEnv = Map.add x (Scheme([], tv)) env
-        let (s1, t1) = ti newEnv boundExpr
-        let scheme1 = generalise (applySubToEnv s1 env) t1
-        let cleanEnv = Map.remove x env
-        let newEnv' = Map.add x scheme1 cleanEnv
-        let (s2, t2) = ti (applySubToEnv s1 newEnv') body
-        (composeSubstition s2 s1, t2)
-    | Record(r) ->
-        Map.foldBack (fun k v (subst, (T mapTypes)) ->
+          let functionType = TFun(applySub subst newTv, Tbody)
+          newSubst, functionType
+      | Let(x, boundExpr, body) ->
+          let (s1, t1) = ti env boundExpr
+          let scheme1 = generalise (applySubToEnv s1 env) t1
+          let cleanEnv = Map.remove x env
+          let newEnv = Map.add x scheme1 cleanEnv
+          let (s2, t2) = ti (applySubToEnv s1 newEnv) body
+          (composeSubstition s2 s1, t2)
+      | App(e1, e2) ->
+          let (s1, t1) = ti env e1
+          let (s2, t2) = ti (applySubToEnv s1 env) e2
+          let tv = newTypeVar()
+          let s3 = unify (applySub s2 t1) (TFun(t2, tv))
+          (composeSubstition s3 (composeSubstition s2 s1), applySub s3 tv)
+      | LetRec(x, boundExpr, body) ->
+          let tv = newTypeVar()
+          let newEnv = Map.add x (Scheme([], tv)) env
+          let (s1, t1) = ti newEnv boundExpr
+          let scheme1 = generalise (applySubToEnv s1 env) t1
+          let cleanEnv = Map.remove x env
+          let newEnv' = Map.add x scheme1 cleanEnv
+          let (s2, t2) = ti (applySubToEnv s1 newEnv') body
+          (composeSubstition s2 s1, t2)
+      | Record(r) ->
+          Map.foldBack (fun k v (subst, (T mapTypes)) ->
             let (s, t) = ti env v
             (composeSubstition s subst, T(Map.add k t mapTypes))) r (Map.empty, T Map.empty) // ( substituitions,  labels->types) -- fixme
-    | _ -> failwithf "%A" exp
+      | _ -> failwithf "%A" exp
+    printf "Returns %A with %A\n" inferredType subst
+    (subst, inferredType)
 
 // > Record "x" -> 2 * 3, "y" -> fun x -> x
 //     > ti 2*3
